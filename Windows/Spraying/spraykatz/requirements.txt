@@ -1,0 +1,7 @@
+impacket
+pyCryptodomex
+pyasn1
+pyOpenSSL
+pypykatz>=0.3.3
+lxml
+python3-wget
