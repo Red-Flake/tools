@@ -1,61 +1,10 @@
-# rdp2tcp 0.1 (open tcp tunnel through rdp)
-
- ![Diagram](http://i.imgur.com/7xTFXeq.png)
-
-## clone
-```sh
-git clone https://github.com/gerardo-junior/rdp2tcp.git [RDP2TCP FOLDER]
-cd [RDP2TCP FOLDER]
-```
-
-## build
-```sh
-make client
-make server-mingw32
-```
-#### on local host linux
-
-```sh
-xfreerdp /u:[USER] /p:[PASSWORD] /v:[HOST] /rdp2tcp:[RDP2TCP FOLDER]/client/rdp2tcp 
-```
-
-#### on remote host windows 
-
-Upload [RDP2TCP FOLDER]/server/rdp2tcp.exe file to remote host
-
-open cmd and run rdp2tcp.exe (it is not necessary to run with administrator privilege)
-
-### Controller:
-
-after you see the message "virtual channel connected" on your terminal. you can perform port forwarding using the tool: [RDP2TCP FOLDER]/tools/rdp2tcp.py
-
-> ./tools/rdp2tcp.py add forward [local addr] [local port] [remote addr] [remote port]
 
 
-```sh
-./tools/rdp2tcp.py help # for more info
-./tools/rdp2tcp.py add forward 127.0.0.1 10001 127.0.0.1 8000
-curl 127.0.0.1:10001
-```
+        rdp2tcp 0.1 
 
-
-#### if you have problems in the build with 32-bit compiler try:
-
-```sh
-wget http://archive.ubuntu.com/ubuntu/pool/universe/m/mingw32/mingw32_4.2.1.dfsg-2ubuntu1_amd64.deb;
-wget http://archive.ubuntu.com/ubuntu/pool/universe/m/mingw32-binutils/mingw32-binutils_2.20-0.2ubuntu1_amd64.deb;
-wget http://archive.ubuntu.com/ubuntu/pool/universe/m/mingw32-runtime/mingw32-runtime_3.15.2-0ubuntu1_all.deb;
-sudo dpkg -i mingw32*.deb
-sudo apt-get install -f
-```
-
-read more: http://rdp2tcp.sourceforge.net/
-
-### how this works:
-<pre>
 rdp2tcp is a tunneling tool on top of remote desktop protocol (RDP).
 It uses RDP virtual channel capabilities to multiplex several ports
-forwarding over an already established rdesktop session.
+forwarding over an already established rdesktop or FreeRDP session.
 
 Available features:
  - tcp port forwarding
@@ -64,7 +13,7 @@ Available features:
  - SOCKS5 minimal support
 
 The code is splitted into 2 parts:
- - the client running on the rdesktop client side
+ - the client running on the rdesktop or FreeRDP client side
  - the server running on the Terminal Server side
 
 Once both rdp2tcp client and server are running, tunnels management is
@@ -147,10 +96,23 @@ simple command lines.
 ex: "rdp2tcp.py add forward LHOST LPORT RHOST RPORT"
 
 
+-[ client (FreeRDP side) ]--------------------
+
+In FreeRDP, rdp2tcp has been available since version 2.0.0 (released on
+2020-04-09). It can be used with the /rdp2tcp command-line parameter:
+
+    xfreerdp /u:myuser /v:myserver:3389 /rdp2tcp:/path/to/rdp2tcp/client/rdp2tcp
+
+After FreeRDP is started, it is possible to configure port forwarding by
+connecting to the controller and sending commands. This is similar as when
+using rdesktop. rdp2tcp.py (located in "tools" folder) can also be used to
+manage tunnels.
+
+
 -[ server (Terminal Server side) ]-------------
 
 Before starting the rdp2tcp server, you must be logged on the Terminal Server
-with one or more rdp2tcp clients attached to rdesktop.
+with one or more rdp2tcp clients attached to rdesktop or FreeRDP.
 
 The rdp2tcp server won't magically appear on the Terminal Server. So the
 rdp2tcp.exe executable must be first uploaded.
@@ -196,4 +158,3 @@ xte (http://hoopajoo.net/projects/xautomation.html) run the X11 script.
        6: tunnel management
        7: SOCKS5 protocol
 
-</pre>
