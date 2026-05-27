@@ -1,0 +1,687 @@
+$script:LARGE_INTEGER = New-Structure $Module WinApiModule.LARGE_INTEGER @{
+    LowPart                     = New-StructureField 0 UInt32
+    HighPart                    = New-StructureField 1 Int32
+}
+
+$script:UNICODE_STRING = New-Structure $Module WinApiModule.UNICODE_STRING @{
+    Length                      = New-StructureField 0 UInt16
+    MaximumLength               = New-StructureField 1 UInt16
+    Buffer                      = New-StructureField 2 IntPtr
+}
+
+$script:LUID = New-Structure $Module WinApiModule.LUID @{
+    LowPart                     = New-StructureField 0 UInt32
+    HighPart                    = New-StructureField 1 Int32
+}
+
+$script:SID_AND_ATTRIBUTES = New-Structure $Module WinApiModule.SID_AND_ATTRIBUTES @{
+    Sid                         = New-StructureField 0 IntPtr
+    Attributes                  = New-StructureField 1 UInt32
+}
+
+$script:LUID_AND_ATTRIBUTES = New-Structure $Module WinApiModule.LUID_AND_ATTRIBUTES @{
+    Luid                        = New-StructureField 0 $script:LUID
+    Attributes                  = New-StructureField 1 UInt32
+}
+
+$script:TOKEN_USER = New-Structure $Module WinApiModule.TOKEN_USER @{
+    User                        = New-StructureField 0 $script:SID_AND_ATTRIBUTES
+}
+
+$script:TOKEN_GROUPS = New-Structure $Module WinApiModule.TOKEN_GROUPS @{
+    GroupCount                  = New-StructureField 0 UInt32
+    Groups                      = New-StructureField 1 $script:SID_AND_ATTRIBUTES.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:TOKEN_PRIVILEGES = New-Structure $Module WinApiModule.TOKEN_PRIVILEGES @{
+    PrivilegeCount              = New-StructureField 0 UInt32
+    Privileges                  = New-StructureField 1 $script:LUID_AND_ATTRIBUTES.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:TOKEN_MANDATORY_LABEL = New-Structure $Module WinApiModule.TOKEN_MANDATORY_LABEL @{
+    Label                       = New-StructureField 0 $script:SID_AND_ATTRIBUTES
+}
+
+$script:TOKEN_STATISTICS = New-Structure $Module WinApiModule.TOKEN_STATISTICS @{
+    TokenId                     = New-StructureField 0 $script:LUID
+    AuthenticationId            = New-StructureField 1 $script:LUID
+    ExpirationTime              = New-StructureField 2 $script:LARGE_INTEGER
+    TokenType                   = New-StructureField 3 $script:TOKEN_TYPE
+    ImpersonationLevel          = New-StructureField 4 $script:SECURITY_IMPERSONATION_LEVEL
+    DynamicCharged              = New-StructureField 5 UInt32
+    DynamicAvailable            = New-StructureField 6 UInt32
+    GroupCount                  = New-StructureField 7 UInt32
+    PrivilegeCount              = New-StructureField 8 UInt32
+    ModifiedId                  = New-StructureField 9 $script:LUID
+}
+
+$script:TOKEN_ORIGIN = New-Structure $Module WinApiModule.TOKEN_ORIGIN @{
+    OriginatingLogonSession     = New-StructureField 0 $script:LUID
+}
+
+$script:TOKEN_SOURCE = New-Structure $Module WinApiModule.TOKEN_SOURCE @{
+    SourceName                  = New-StructureField 0 Byte[] -MarshalAs @('ByValArray', 8)
+    SourceIdentifier            = New-StructureField 1 $script:LUID
+}
+
+$script:CLIENT_ID = New-Structure $Module WinApiModule.CLIENT_ID @{
+    UniqueProcess               = New-StructureField 0 IntPtr
+    UniqueThread                = New-StructureField 1 IntPtr
+}
+
+$script:SYSTEM_THREAD_INFORMATION = New-Structure $Module WinApiModule.SYSTEM_THREAD_INFORMATION @{
+    KernelTime                  = New-StructureField 0 $script:LARGE_INTEGER
+    UserTime                    = New-StructureField 1 $script:LARGE_INTEGER
+    CreateTime                  = New-StructureField 2 $script:LARGE_INTEGER
+    WaitTime                    = New-StructureField 3 UInt32
+    StartAddress                = New-StructureField 4 IntPtr
+    ClientId                    = New-StructureField 5 $script:CLIENT_ID
+    Priority                    = New-StructureField 6 Int32
+    BasePriority                = New-StructureField 7 Int32
+    ContextSwitches             = New-StructureField 8 UInt32
+    ThreadState                 = New-StructureField 9 UInt32
+    WaitReason                  = New-StructureField 10 UInt32
+}
+
+$script:SYSTEM_PROCESS_INFORMATION = New-Structure $Module WinApiModule.SYSTEM_PROCESS_INFORMATION @{
+    NextEntryOffset             = New-StructureField 0 UInt32
+    NumberOfThreads             = New-StructureField 1 UInt32
+    WorkingSetPrivateSize       = New-StructureField 2 $script:LARGE_INTEGER
+    HardFaultCount              = New-StructureField 3 UInt32
+    NumberOfThreadsHighWatermark = New-StructureField 4 UInt32
+    CycleTime                   = New-StructureField 5 UInt64
+    CreateTime                  = New-StructureField 6 $script:LARGE_INTEGER
+    UserTime                    = New-StructureField 7 $script:LARGE_INTEGER
+    KernelTime                  = New-StructureField 8 $script:LARGE_INTEGER
+    ImageName                   = New-StructureField 9 $script:UNICODE_STRING
+    BasePriority                = New-StructureField 10 Int32
+    UniqueProcessId             = New-StructureField 11 IntPtr
+    InheritedFromUniqueProcessId = New-StructureField 12 IntPtr
+    HandleCount                 = New-StructureField 13 UInt32
+    SessionId                   = New-StructureField 14 UInt32
+    UniqueProcessKey            = New-StructureField 15 UIntPtr
+    PeakVirtualSize             = New-StructureField 16 UIntPtr
+    VirtualSize                 = New-StructureField 17 UIntPtr
+    PageFaultCount              = New-StructureField 18 UInt32
+    PeakWorkingSetSize          = New-StructureField 19 UIntPtr
+    WorkingSetSize              = New-StructureField 20 UIntPtr
+    QuotaPeakPagedPoolUsage     = New-StructureField 21 UIntPtr
+    QuotaPagedPoolUsage         = New-StructureField 22 UIntPtr
+    QuotaPeakNonPagedPoolUsage  = New-StructureField 23 UIntPtr
+    QuotaNonPagedPoolUsage      = New-StructureField 24 UIntPtr
+    PagefileUsage               = New-StructureField 25 UIntPtr
+    PeakPagefileUsage           = New-StructureField 26 UIntPtr
+    PrivatePageCount            = New-StructureField 27 UIntPtr
+    ReadOperationCount          = New-StructureField 28 $script:LARGE_INTEGER
+    WriteOperationCount         = New-StructureField 29 $script:LARGE_INTEGER
+    OtherOperationCount         = New-StructureField 30 $script:LARGE_INTEGER
+    ReadTransferCount           = New-StructureField 31 $script:LARGE_INTEGER
+    WriteTransferCount          = New-StructureField 32 $script:LARGE_INTEGER
+    OtherTransferCount          = New-StructureField 33 $script:LARGE_INTEGER
+    Threads                     = New-StructureField 34 IntPtr
+}
+
+$script:SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX = New-Structure $Module WinApiModule.SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX @{
+    Object                      = New-StructureField 0 IntPtr
+    UniqueProcessId             = New-StructureField 1 IntPtr
+    HandleValue                 = New-StructureField 2 IntPtr
+    GrantedAccess               = New-StructureField 3 UInt32
+    CreatorBackTraceIndex       = New-StructureField 4 UInt16
+    ObjectTypeIndex             = New-StructureField 5 UInt16
+    HandleAttributes            = New-StructureField 6 UInt32
+    Reserved                    = New-StructureField 7 UInt32
+}
+
+$script:SYSTEM_HANDLE_INFORMATION_EX = New-Structure $Module WinApiModule.SYSTEM_HANDLE_INFORMATION_EX @{
+    NumberOfHandles             = New-StructureField 0 IntPtr
+    Reserved                    = New-StructureField 1 IntPtr
+    Handles                     = New-StructureField 2 $script:SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:PPROCESS_BASIC_INFORMATION = New-Structure $Module WinApiModule.PPROCESS_BASIC_INFORMATION @{
+    ExitStatus                  = New-StructureField 0 Int32
+    PebBaseAddress              = New-StructureField 1 IntPtr
+    AffinityMask                = New-StructureField 2 IntPtr
+    BasePriority                = New-StructureField 3 Int32
+    UniqueProcessId             = New-StructureField 4 IntPtr
+    InheritedFromUniqueProcessId = New-StructureField 5 IntPtr
+}
+
+# $PROCESSENTRY32 = New-Structure $Module WinApiModule.PROCESSENTRY32 @{
+#     Size                        = New-StructureField 0 UInt32
+#     Usage                       = New-StructureField 1 UInt32
+#     ProcessId                   = New-StructureField 2 UInt32
+#     DefaultHeapId               = New-StructureField 3 IntPtr
+#     ModuleId                    = New-StructureField 4 UInt32
+#     Threads                     = New-StructureField 5 UInt32
+#     ParentProcessId             = New-StructureField 6 UInt32
+#     PriClassBase                = New-StructureField 7 Int32
+#     Flags                       = New-StructureField 8 UInt32
+#     ExeFile                     = New-StructureField 9 Char[] -MarshalAs @('ByValArray', 260)
+# } -Charset Unicode
+
+# $THREADENTRY32 = New-Structure $Module WinApiModule.THREADENTRY32 @{
+#     Size                        = New-StructureField 0 UInt32
+#     Usage                       = New-StructureField 1 UInt32
+#     ThreadId                    = New-StructureField 2 UInt32
+#     OwnerProcessId              = New-StructureField 3 UInt32
+#     BasePri                     = New-StructureField 4 Int32
+#     DeltaPri                    = New-StructureField 5 Int32
+#     Flags                       = New-StructureField 6 UInt32
+# }
+
+$script:IN6_ADDR = New-Structure $Module WinApiModule.IN6_ADDR @{
+    Addr                        = New-StructureField 0 Byte[] -MarshalAs @('ByValArray', 16)
+}
+
+$script:SOCKADDR = New-Structure $Module WinApiModule.SOCKADDR @{
+    Family                      = New-StructureField 0 UInt16
+    Data                        = New-StructureField 1 Byte[] -MarshalAs @('ByValArray', 14)
+}
+
+$script:SOCKADDR_IN6 = New-Structure $Module WinApiModule.SOCKADDR_IN6 @{
+    Family                      = New-StructureField 0 Int16
+    Port                        = New-StructureField 1 UInt16
+    lowInfo                     = New-StructureField 2 UInt32
+    Addr                        = New-StructureField 3 $script:IN6_ADDR
+    ScopeId                     = New-StructureField 4 UInt32
+}
+
+$script:SOCKET_ADDRESS = New-Structure $Module WinApiModule.SOCKET_ADDRESS @{
+    Sockaddr                    = New-StructureField 0 IntPtr # LPSOCKADDR -> SOCKADDR or SOCKADDR_IN6
+    SockaddrLength              = New-StructureField 1 Int32
+}
+
+$script:IP_ADAPTER_UNICAST_ADDRESS_LH = New-Structure $Module WinApiModule.IP_ADAPTER_UNICAST_ADDRESS_LH @{
+    Length                      = New-StructureField 0 UInt32
+    Flags                       = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_UNICAST_ADDRESS_LH *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+    PrefixOrigin                = New-StructureField 4 UInt32
+    SuffixOrigin                = New-StructureField 5 UInt32
+    DadState                    = New-StructureField 6 UInt32
+    ValidLifetime               = New-StructureField 7 UInt32
+    PreferredLifetime           = New-StructureField 8 UInt32
+    LeaseLifetime               = New-StructureField 9 UInt32
+    OnLinkPrefixLength          = New-StructureField 10 Byte
+}
+
+$script:IP_ADAPTER_ANYCAST_ADDRESS_XP = New-Structure $Module WinApiModule.IP_ADAPTER_ANYCAST_ADDRESS_XP @{
+    Length                      = New-StructureField 0 UInt32
+    Flags                       = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_ANYCAST_ADDRESS_XP *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+}
+
+$script:IP_ADAPTER_MULTICAST_ADDRESS_XP = New-Structure $Module WinApiModule.IP_ADAPTER_MULTICAST_ADDRESS_XP @{
+    Length                      = New-StructureField 0 UInt32
+    Flags                       = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_MULTICAST_ADDRESS_XP *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+}
+
+$script:IP_ADAPTER_DNS_SERVER_ADDRESS_XP = New-Structure $Module WinApiModule.IP_ADAPTER_DNS_SERVER_ADDRESS_XP @{
+    Length                      = New-StructureField 0 UInt32
+    Flags                       = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_DNS_SERVER_ADDRESS_XP *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+}
+
+$script:IP_ADAPTER_PREFIX_XP = New-Structure $Module WinApiModule.IP_ADAPTER_PREFIX_XP @{
+    Length                      = New-StructureField 0 UInt32
+    Flags                       = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_PREFIX_XP *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+    PrefixLength                = New-StructureField 4 UInt32
+}
+
+$script:IP_ADAPTER_WINS_SERVER_ADDRESS_LH = New-Structure $Module WinApiModule.IP_ADAPTER_WINS_SERVER_ADDRESS_LH @{
+    Length                      = New-StructureField 0 UInt32
+    Reserved                    = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_WINS_SERVER_ADDRESS_LH *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+}
+
+$script:IP_ADAPTER_GATEWAY_ADDRESS_LH = New-Structure $Module WinApiModule.IP_ADAPTER_GATEWAY_ADDRESS_LH @{
+    Length                      = New-StructureField 0 UInt32
+    Reserved                    = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_GATEWAY_ADDRESS_LH *Next
+    Address                     = New-StructureField 3 $script:SOCKET_ADDRESS
+}
+
+$script:IP_ADAPTER_DNS_SUFFIX = New-Structure $Module WinApiModule.IP_ADAPTER_DNS_SUFFIX @{
+    Next                        = New-StructureField 0 IntPtr # struct _IP_ADAPTER_DNS_SUFFIX *Next
+    String                      = New-StructureField 1 String -MarshalAs @('ByValTStr', 256)
+} -Charset Unicode
+
+$script:IP_ADAPTER_ADDRESSES = New-Structure $Module WinApiModule.IP_ADAPTER_ADDRESSES @{
+    Length                      = New-StructureField 0 UInt32
+    IfIndex                     = New-StructureField 1 UInt32
+    Next                        = New-StructureField 2 IntPtr # struct _IP_ADAPTER_ADDRESSES_LH    *Next;
+    AdapterName                 = New-StructureField 3 String -MarshalAs @('LPStr')
+    FirstUnicastAddress         = New-StructureField 4 IntPtr # PIP_ADAPTER_UNICAST_ADDRESS_LH
+    FirstAnycastAddress         = New-StructureField 5 IntPtr # PIP_ADAPTER_ANYCAST_ADDRESS_XP
+    FirstMulticastAddress       = New-StructureField 6 IntPtr # PIP_ADAPTER_MULTICAST_ADDRESS_XP
+    FirstDnsServerAddress       = New-StructureField 7 IntPtr # PIP_ADAPTER_DNS_SERVER_ADDRESS_XP
+    DnsSuffix                   = New-StructureField 8 String -MarshalAs @('LPWStr')
+    Description                 = New-StructureField 9 String -MarshalAs @('LPWStr')
+    FriendlyName                = New-StructureField 10 String -MarshalAs @('LPWStr')
+    PhysicalAddress             = New-StructureField 11 Byte[] -MarshalAs @('ByValArray', 8)
+    PhysicalAddressLength       = New-StructureField 12 UInt32
+    Flags                       = New-StructureField 13 UInt32
+    Mtu                         = New-StructureField 14 UInt32
+    IfType                      = New-StructureField 15 UInt32
+    OperStatus                  = New-StructureField 16 UInt32
+    Ipv6IfIndex                 = New-StructureField 17 UInt32
+    ZoneIndices                 = New-StructureField 18 UInt32[] -MarshalAs @('ByValArray', 16)
+    FirstPrefix                 = New-StructureField 19 IntPtr # PIP_ADAPTER_PREFIX_XP
+    TransmitLinkSpeed           = New-StructureField 20 UInt64
+    ReceiveLinkSpeed            = New-StructureField 21 UInt64
+    FirstWinsServerAddress      = New-StructureField 22 IntPtr # PIP_ADAPTER_WINS_SERVER_ADDRESS_LH
+    FirstGatewayAddress         = New-StructureField 23 IntPtr # PIP_ADAPTER_GATEWAY_ADDRESS_LH
+    Ipv4Metric                  = New-StructureField 24 UInt32
+    Ipv6Metric                  = New-StructureField 25 UInt32
+    Luid                        = New-StructureField 26 UInt64
+    Dhcpv4Server                = New-StructureField 27 $script:SOCKET_ADDRESS
+    CompartmentId               = New-StructureField 28 UInt32
+    NetworkGuid                 = New-StructureField 29 Guid
+    ConnectionType              = New-StructureField 30 UInt32
+    TunnelType                  = New-StructureField 31 UInt32
+    Dhcpv6Server                = New-StructureField 32 $script:SOCKET_ADDRESS
+    Dhcpv6ClientDuid            = New-StructureField 33 Byte[] -MarshalAs @('ByValArray', 130)
+    Dhcpv6ClientDuidLength      = New-StructureField 34 UInt32
+    Dhcpv6Iaid                  = New-StructureField 35 UInt32
+    FirstDnsSuffix              = New-StructureField 36 IntPtr # PIP_ADAPTER_DNS_SUFFIX
+}
+
+$script:MIB_TCPROW_OWNER_PID = New-Structure $Module WinApiModule.MIB_TCPROW_OWNER_PID @{
+    State                       = New-StructureField 0 UInt32
+    LocalAddr                   = New-StructureField 1 UInt32
+    LocalPort                   = New-StructureField 2 Byte[] -MarshalAs @('ByValArray', 4)
+    RemoteAddr                  = New-StructureField 3 UInt32
+    RemotePort                  = New-StructureField 4 Byte[] -MarshalAs @('ByValArray', 4)
+    OwningPid                   = New-StructureField 5 UInt32
+}
+
+$script:MIB_UDPROW_OWNER_PID = New-Structure $Module WinApiModule.MIB_UDPROW_OWNER_PID @{
+    LocalAddr                   = New-StructureField 0 UInt32
+    LocalPort                   = New-StructureField 1 Byte[] -MarshalAs @('ByValArray', 4)
+    OwningPid                   = New-StructureField 2 UInt32
+}
+
+$script:MIB_TCP6ROW_OWNER_PID = New-Structure $Module WinApiModule.MIB_TCP6ROW_OWNER_PID @{
+    LocalAddr                   = New-StructureField 0 Byte[] -MarshalAs @('ByValArray', 16)
+    LocalScopeId                = New-StructureField 1 UInt32
+    LocalPort                   = New-StructureField 2 Byte[] -MarshalAs @('ByValArray', 4)
+    RemoteAddr                  = New-StructureField 3 Byte[] -MarshalAs @('ByValArray', 16)
+    RemoteScopeId               = New-StructureField 4 UInt32
+    RemotePort                  = New-StructureField 5 Byte[] -MarshalAs @('ByValArray', 4)
+    State                       = New-StructureField 6 UInt32
+    OwningPid                   = New-StructureField 7 UInt32
+}
+
+$script:MIB_UDP6ROW_OWNER_PID = New-Structure $Module WinApiModule.MIB_UDP6ROW_OWNER_PID @{
+    LocalAddr                   = New-StructureField 0 Byte[] -MarshalAs @('ByValArray', 16)
+    LocalScopeId                = New-StructureField 1 UInt32
+    LocalPort                   = New-StructureField 2 Byte[] -MarshalAs @('ByValArray', 4)
+    OwningPid                   = New-StructureField 3 UInt32
+}
+
+$script:MIB_TCPTABLE_OWNER_PID = New-Structure $Module WinApiModule.MIB_TCPTABLE_OWNER_PID @{
+    NumEntries                  = New-StructureField 0 UInt32
+    Table                       = New-StructureField 1 $script:MIB_TCPROW_OWNER_PID.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:MIB_UDPTABLE_OWNER_PID = New-Structure $Module WinApiModule.MIB_UDPTABLE_OWNER_PID @{
+    NumEntries                  = New-StructureField 0 UInt32
+    Table                       = New-StructureField 1 $script:MIB_UDPROW_OWNER_PID.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:MIB_TCP6TABLE_OWNER_PID = New-Structure $Module WinApiModule.MIB_TCP6TABLE_OWNER_PID @{
+    NumEntries                  = New-StructureField 0 UInt32
+    Table                       = New-StructureField 1 $script:MIB_TCP6ROW_OWNER_PID.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:MIB_UDP6TABLE_OWNER_PID = New-Structure $Module WinApiModule.MIB_UDP6TABLE_OWNER_PID @{
+    NumEntries                  = New-StructureField 0 UInt32
+    Table                       = New-StructureField 1 $script:MIB_UDP6ROW_OWNER_PID.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:FILETIME = New-Structure $Module WinApiModule.FILETIME @{
+    LowDateTime                 = New-StructureField 0 UInt32
+    HighDateTime                = New-StructureField 1 UInt32
+}
+
+$script:CREDENTIAL = New-Structure $Module WinApiModule.CREDENTIAL @{
+    Flags                       = New-StructureField 0 UInt32
+    Type                        = New-StructureField 1 UInt32
+    TargetName                  = New-StructureField 2 String
+    Comment                     = New-StructureField 3 String
+    LastWritten                 = New-StructureField 4 $script:FILETIME
+    CredentialBlobSize          = New-StructureField 5 UInt32
+    CredentialBlob              = New-StructureField 6 IntPtr
+    Persist                     = New-StructureField 7 UInt32
+    AttributeCount              = New-StructureField 8 UInt32
+    Attributes                  = New-StructureField 9 IntPtr
+    TargetAlias                 = New-StructureField 10 String
+    UserName                    = New-StructureField 11 String
+} -Charset Unicode
+
+$script:GENERIC_MAPPING = New-Structure $Module WinApiModule.GENERIC_MAPPING @{
+    GenericRead                 = New-StructureField 0 UInt32
+    GenericWrite                = New-StructureField 1 UInt32
+    GenericExecute              = New-StructureField 2 UInt32
+    GenericAll                  = New-StructureField 3 UInt32
+}
+
+$script:OBJECT_NAME_INFORMATION = New-Structure $Module WinApiModule.OBJECT_NAME_INFORMATION @{
+    Name                        = New-StructureField 0 $script:UNICODE_STRING
+}
+
+$script:OBJECT_TYPE_INFORMATION = New-Structure $Module WinApiModule.OBJECT_TYPE_INFORMATION @{
+    TypeName                    = New-StructureField 0 $script:UNICODE_STRING
+    TotalNumberOfObjects        = New-StructureField 1 UInt32
+    TotalNumberOfHandles        = New-StructureField 2 UInt32
+    TotalPagedPoolUsage         = New-StructureField 3 UInt32
+    TotalNonPagedPoolUsage      = New-StructureField 4 UInt32
+    TotalNamePoolUsage          = New-StructureField 5 UInt32
+    TotalHandleTableUsage       = New-StructureField 6 UInt32
+    HighWaterNumberOfObjects    = New-StructureField 7 UInt32
+    HighWaterNumberOfHandles    = New-StructureField 8 UInt32
+    HighWaterPagedPoolUsage     = New-StructureField 9 UInt32
+    HighWaterNonPagedPoolUsage  = New-StructureField 10 UInt32
+    HighWaterNamePoolUsage      = New-StructureField 11 UInt32
+    HighWaterHandleTableUsage   = New-StructureField 12 UInt32
+    InvalidAttributes           = New-StructureField 13 UInt32
+    GenericMapping              = New-StructureField 14 $script:GENERIC_MAPPING
+    ValidAccessMask             = New-StructureField 15 UInt32
+    SecurityRequired            = New-StructureField 16 Byte
+    MaintainHandleCount         = New-StructureField 17 Byte
+    TypeIndex                   = New-StructureField 18 Byte
+    ReservedByte                = New-StructureField 19 Byte
+    PoolType                    = New-StructureField 20 UInt32
+    DefaultPagedPoolCharge      = New-StructureField 21 UInt32
+    DefaultNonPagedPoolCharge   = New-StructureField 22 UInt32
+}
+
+$script:VAULT_ITEM_7 = New-Structure $Module WinApiModule.VAULT_ITEM_7 @{
+    SchemaId                    = New-StructureField 0 Guid
+    FriendlyName                = New-StructureField 1 String
+    Resource                    = New-StructureField 2 IntPtr
+    Identity                    = New-StructureField 3 IntPtr
+    Authenticator               = New-StructureField 4 IntPtr
+    LastWritten                 = New-StructureField 5 $script:FILETIME
+    Flags                       = New-StructureField 6 Uint32
+    PropertiesCount             = New-StructureField 7 UInt32
+    Properties                  = New-StructureField 8 IntPtr
+}
+
+$script:VAULT_ITEM_8 = New-Structure $Module WinApiModule.VAULT_ITEM_8 @{
+    SchemaId                    = New-StructureField 0 Guid
+    FriendlyName                = New-StructureField 1 String
+    Resource                    = New-StructureField 2 IntPtr
+    Identity                    = New-StructureField 3 IntPtr
+    Authenticator               = New-StructureField 4 IntPtr
+    PackageSid                  = New-StructureField 5 IntPtr
+    LastWritten                 = New-StructureField 6 $script:FILETIME
+    Flags                       = New-StructureField 7 Uint32
+    PropertiesCount             = New-StructureField 8 UInt32
+    Properties                  = New-StructureField 9 IntPtr
+}
+
+$script:VAULT_ITEM_DATA_HEADER = New-Structure $Module WinApiModule.VAULT_ITEM_DATA_HEADER @{
+    SchemaElementId             = New-StructureField 0 UInt32
+    Unknown1                    = New-StructureField 1 UInt32
+    Type                        = New-StructureField 2 UInt32
+    Unknown2                    = New-StructureField 3 UInt32
+}
+
+$script:WLAN_INTERFACE_INFO = New-Structure $Module WinApiModule.WLAN_INTERFACE_INFO @{
+    InterfaceGuid               = New-StructureField 0 Guid
+    InterfaceDescription        = New-StructureField 1 String -MarshalAs @('ByValTStr', 256)
+    State                       = New-StructureField 2 UInt32
+} -Charset Unicode
+
+$script:WLAN_PROFILE_INFO = New-Structure $Module WinApiModule.WLAN_PROFILE_INFO @{
+    ProfileName                 = New-StructureField 0 String -MarshalAs @('ByValTStr', 256)
+    Flags                       = New-StructureField 1 UInt32
+} -Charset Unicode
+
+$script:SECURITY_ATTRIBUTES = New-Structure $Module WinApiModule.SECURITY_ATTRIBUTES @{
+    Length                      = New-StructureField 0 UInt32
+    SecurityDescriptor          = New-StructureField 1 IntPtr
+    InheritHandle               = New-StructureField 2 Bool
+}
+
+$script:OBJECT_ATTRIBUTES = New-Structure $Module WinApiModule.OBJECT_ATTRIBUTES @{
+    Length                      = New-StructureField 0 UInt32
+    RootDirectory               = New-StructureField 1 IntPtr
+    ObjectName                  = New-StructureField 2 IntPtr
+    Attributes                  = New-StructureField 3 UInt32
+    SecurityDescriptor          = New-StructureField 4 IntPtr
+    SecurityQualityOfService    = New-StructureField 5 IntPtr
+}
+
+$script:OBJECT_DIRECTORY_INFORMATION = New-Structure $Module WinApiModule.OBJECT_DIRECTORY_INFORMATION @{
+    Name                        = New-StructureField 0 $script:UNICODE_STRING
+    TypeName                    = New-StructureField 1 $script:UNICODE_STRING
+}
+
+$script:WIN32_FILE_ATTRIBUTE_DATA = New-Structure $Module WinApiModule.WIN32_FILE_ATTRIBUTE_DATA @{
+    dwFileAttributes            = New-StructureField 0 UInt32
+    ftCreationTime              = New-StructureField 1 $script:FILETIME
+    ftLastAccessTime            = New-StructureField 2 $script:FILETIME
+    ftLastWriteTime             = New-StructureField 3 $script:FILETIME
+    nFileSizeHigh               = New-StructureField 4 UInt32
+    nFileSizeLow                = New-StructureField 5 UInt32
+}
+
+$script:WTS_SESSION_INFO_1W = New-Structure $Module WinApiModule.WTS_SESSION_INFO_1W @{
+    ExecEnvId                   = New-StructureField 0 UInt32
+    State                       = New-StructureField 1 $script:WTS_CONNECTSTATE_CLASS
+    SessionId                   = New-StructureField 2 UInt32
+    SessionName                 = New-StructureField 3 String -MarshalAs @('LPWStr')
+    HostName                    = New-StructureField 4 String -MarshalAs @('LPWStr')
+    UserName                    = New-StructureField 5 String -MarshalAs @('LPWStr')
+    DomainName                  = New-StructureField 6 String -MarshalAs @('LPWStr')
+    FarmName                    = New-StructureField 7 String -MarshalAs @('LPWStr')
+}
+
+$script:TPM_DEVICE_INFORMATION = New-Structure $Module WinApiModule.TPM_DEVICE_INFORMATION @{
+    TpmVersion                  = New-StructureField 0 UInt32
+    ManufacturerId              = New-StructureField 1 String -MarshalAs @('ByValTStr', 5)
+    ManufacturerName            = New-StructureField 2 String -MarshalAs @('ByValTStr', 64)
+    ManufacturerVersionMajor    = New-StructureField 3 UInt16
+    ManufacturerVersionMinor    = New-StructureField 4 UInt16
+    ManufacturerVersionSubMajor = New-StructureField 5 UInt16
+    ManufacturerVersionSubMinor = New-StructureField 6 UInt16
+    PpiSpecVersion              = New-StructureField 7 String -MarshalAs @('ByValTStr', 12)
+    Pcr7BindingState            = New-StructureField 8 UInt32
+    TpmPresent                  = New-StructureField 9 Byte
+    ReadyForAttestation         = New-StructureField 10 Byte
+    IsCapableForAttestation     = New-StructureField 11 Byte
+    ReadyForStorage             = New-StructureField 12 Byte
+    IsInitialized               = New-StructureField 13 Byte
+    ClearNeededToRecover        = New-StructureField 14 Byte
+    ClearPossible               = New-StructureField 15 Byte
+    MaintenanceTaskComplete     = New-StructureField 16 Byte
+    TpmHasVulnerableFirmware    = New-StructureField 17 Byte
+    TpmFirmwareVulnerability    = New-StructureField 18 $script:TPM_VULNERABILITY
+    ErrataDateDayOfYear         = New-StructureField 19 UInt32
+    ErrataDateYear              = New-StructureField 20 UInt32
+    TpmSpecVersionStr           = New-StructureField 21 String -MarshalAs @('ByValTStr', 4)
+    TpmSpecVersion              = New-StructureField 22 UInt32[] -MarshalAs @('ByValArray', 3)
+    PcClientVersion             = New-StructureField 23 String -MarshalAs @('ByValTStr', 12)
+    Tpm12SpecLevel              = New-StructureField 24 UInt32
+    Tpm12SpecRevision           = New-StructureField 25 UInt32
+} -Charset Unicode
+
+$script:DSREG_USER_INFO = New-Structure $Module WinApiModule.DSREG_USER_INFO @{
+    UserEmail                   = New-StructureField 0 String
+    UserKeyId                   = New-StructureField 1 String
+    UserKeyName                 = New-StructureField 2 String
+} -Charset Unicode
+
+$script:DSREG_JOIN_INFO = New-Structure $Module WinApiModule.DSREG_JOIN_INFO @{
+    JoinType                    = New-StructureField 0 $script:DSREG_JOIN_TYPE
+    JoinCertificate             = New-StructureField 1 IntPtr
+    DeviceId                    = New-StructureField 2 String
+    IdpDomain                   = New-StructureField 3 String
+    TenantId                    = New-StructureField 4 String
+    JoinUserEmail               = New-StructureField 5 String
+    TenantDisplayName           = New-StructureField 6 String
+    MdmEnrollmentUrl            = New-StructureField 7 String
+    MdmTermsOfUseUrl            = New-StructureField 8 String
+    MdmComplianceUrl            = New-StructureField 9 String
+    UserSettingSyncUrl          = New-StructureField 10 String
+    UserInfo                    = New-StructureField 11 IntPtr
+} -Charset Unicode
+
+$script:FW_INTERFACE_LUIDS = New-Structure $Module WinApiModule.FW_INTERFACE_LUIDS @{
+    NumLUIDs                    = New-StructureField 0 UInt32
+    LUIDs                       = New-StructureField 1 IntPtr
+}
+
+$script:USER_INFO_3 = New-Structure $Module WinApiModule.USER_INFO_3 @{
+    Name                        = New-StructureField 0 String
+    Password                    = New-StructureField 1 String
+    PasswordAge                 = New-StructureField 2 UInt32
+    Priv                        = New-StructureField 3 $script:USER_PRIV
+    HomeDir                     = New-StructureField 4 String
+    Comment                     = New-StructureField 5 String
+    Flags                       = New-StructureField 6 $script:USER_FLAGS
+    ScriptPath                  = New-StructureField 7 String
+    AuthFlags                   = New-StructureField 8 $script:USER_AUTH_FLAGS
+    FullName                    = New-StructureField 9 String
+    UserComment                 = New-StructureField 10 String
+    ConfigInfo                  = New-StructureField 11 String
+    Workstations                = New-StructureField 12 String
+    LastLogon                   = New-StructureField 13 UInt32
+    LastLogoff                  = New-StructureField 14 UInt32
+    AcctExpires                 = New-StructureField 15 UInt32
+    MaxStorage                  = New-StructureField 16 UInt32
+    UnitsPerWeek                = New-StructureField 17 UInt32
+    LogonHours                  = New-StructureField 18 IntPtr
+    BadPasswordCount            = New-StructureField 19 UInt32
+    NumLogons                   = New-StructureField 20 UInt32
+    LogonServer                 = New-StructureField 21 String
+    CountryCode                 = New-StructureField 22 UInt32
+    CodePage                    = New-StructureField 23 UInt32
+    UserId                      = New-StructureField 24 UInt32
+    PrimaryGroupId              = New-StructureField 25 UInt32
+    Profile                     = New-StructureField 26 String
+    HomeDirDrive                = New-StructureField 27 String
+    PasswordExpired             = New-StructureField 28 UInt32
+} -Charset Unicode
+
+$script:SERVICE_STATUS_PROCESS = New-Structure $Module WinApiModule.SERVICE_STATUS_PROCESS @{
+    ServiceType                 = New-StructureField 0 UInt32
+    CurrentState                = New-StructureField 1 UInt32
+    ControlsAccepted            = New-StructureField 2 UInt32
+    Win32ExitCode               = New-StructureField 3 UInt32
+    ServiceSpecificExitCode     = New-StructureField 4 UInt32
+    CheckPoint                  = New-StructureField 5 UInt32
+    WaitHint                    = New-StructureField 6 UInt32
+    ProcessId                   = New-StructureField 7 UInt32
+    ServiceFlags                = New-StructureField 8 UInt32
+}
+
+$script:CRYPTOAPI_BLOB = New-Structure $Module WinApiModule.CRYPTOAPI_BLOB @{
+    DataSize                    = New-StructureField 0 UInt32
+    Data                        = New-StructureField 1 IntPtr
+}
+
+$script:CERT_CONTEXT = New-Structure $Module WinApiModule.CERT_CONTEXT @{
+    CertEncodingType            = New-StructureField 0 UInt32
+    CertEncoded                 = New-StructureField 1 IntPtr
+    CertEncodedSize             = New-StructureField 2 UInt32
+    CertInfo                    = New-StructureField 3 IntPtr
+    CertStore                   = New-StructureField 4 IntPtr
+}
+
+$script:CRYPT_ALGORITHM_IDENTIFIER = New-Structure $Module WinApiModule.CRYPT_ALGORITHM_IDENTIFIER @{
+    ObjId                       = New-StructureField 0 String -MarshalAs @('LPStr')
+    Parameters                  = New-StructureField 1 $script:CRYPTOAPI_BLOB
+}
+
+$script:CRYPT_BIT_BLOB = New-Structure $Module WinApiModule.CRYPT_BIT_BLOB @{
+    DataSize                    = New-StructureField 0 UInt32
+    Data                        = New-StructureField 1 IntPtr
+    UnusedBits                  = New-StructureField 2 UInt32
+}
+
+$script:CERT_PUBLIC_KEY_INFO = New-Structure $Module WinApiModule.CERT_PUBLIC_KEY_INFO @{
+    Algorithm = New-StructureField 0 $script:CRYPT_ALGORITHM_IDENTIFIER
+    PublicKey = New-StructureField 1 $script:CRYPT_BIT_BLOB
+}
+
+$script:CERT_EXTENSION = New-Structure $Module WinApiModule.CERT_EXTENSION @{
+    ObjId                       = New-StructureField 0 String -MarshalAs @('LPStr')
+    Critical                    = New-StructureField 1 Bool
+    Value                       = New-StructureField 2 $script:CRYPTOAPI_BLOB
+}
+
+$script:CERT_INFO = New-Structure $Module WinApiModule.CERT_INFO @{
+    Version = New-StructureField 0 UInt32
+    SerialNumber = New-StructureField 1 $script:CRYPTOAPI_BLOB
+    SignatureAlgorithm = New-StructureField 2 $script:CRYPT_ALGORITHM_IDENTIFIER
+    Issuer = New-StructureField 3 $script:CRYPTOAPI_BLOB
+    NotBefore = New-StructureField 4 $script:FILETIME
+    NotAfter = New-StructureField 5 $script:FILETIME
+    Subject = New-StructureField 6 $script:CRYPTOAPI_BLOB
+    SubjectPublicKeyInfo = New-StructureField 7 $script:CERT_PUBLIC_KEY_INFO
+    IssuerUniqueId = New-StructureField 8 $script:CRYPT_BIT_BLOB
+    SubjectUniqueId = New-StructureField 9 $script:CRYPT_BIT_BLOB
+    ExtensionCount = New-StructureField 10 UInt32
+    Extensions = New-StructureField 11 $script:CERT_EXTENSION.MakeArrayType() -MarshalAs @('ByValArray', 1)
+}
+
+$script:CRYPT_OID_INFO = New-Structure $Module WinApiModule.CRYPT_OID_INFO @{
+    Size = New-StructureField 0 UInt32
+    Oid = New-StructureField 1 String -MarshalAs @('LPStr')
+    Name = New-StructureField 2 String -MarshalAs @('LPWStr')
+    GroupId = New-StructureField 3 UInt32
+    Dummy = New-StructureField 4 UInt32
+    ExtraInfo = New-StructureField 5 $script:CRYPTOAPI_BLOB
+    CngAlgid = New-StructureField 6 String -MarshalAs @('LPWStr')
+    CngExtraAlgid = New-StructureField 7 String -MarshalAs @('LPWStr')
+}
+
+$script:CRYPT_KEY_PROV_INFO = New-Structure $Module WinApiModule.CRYPT_KEY_PROV_INFO @{
+    ContainerName = New-StructureField 0 String -MarshalAs @('LPWStr')
+    ProvName = New-StructureField 1 String -MarshalAs @('LPWStr')
+    ProvType = New-StructureField 2 UInt32
+    Flags = New-StructureField 3 UInt32
+    ProvParamCount = New-StructureField 4 UInt32
+    ProvParam = New-StructureField 5 IntPtr
+    KeySpec = New-StructureField 6 UInt32
+}
+
+$script:CTL_USAGE = New-Structure $Module WinApiModule.CTL_USAGE @{
+    UsageIdentifierCount = New-StructureField 0 UInt32
+    UsageIdentifiers = New-StructureField 1 IntPtr
+}
+
+$script:FVE_STATUS_V8 = New-Structure $Module WinApiModule.FVE_STATUS_V8 @{
+    StructureSize = New-StructureField 0 UInt32
+    StructureVersion = New-StructureField 1 UInt32
+    FveVersion = New-StructureField 2 UInt16
+    Flags = New-StructureField 3 UInt32
+    ConvertedPercent = New-StructureField 4 Double
+    LastConvertStatus = New-StructureField 5 Int32
+    VolArriveTime = New-StructureField 6 Int64
+    WipedPercent = New-StructureField 7 Double
+    WipeState = New-StructureField 8 UInt32
+    WipeCount = New-StructureField 9 UInt32
+    ExtendedFlags = New-StructureField 10 UInt64
+    WimBootHashedSizeRequired = New-StructureField 11 UInt64
+    WimBootHashedSizeActual = New-StructureField 12 UInt64
+    ExtendedFlags2 = New-StructureField 13 UInt64
+    WcosOsMainProtectLevel = New-StructureField 14 UInt32
+    WcosOsDataProtectLevel = New-StructureField 15 UInt32
+    WcosPreInstalledProtectLevel = New-StructureField 16 UInt32
+    WcosUserDataProtectLevel = New-StructureField 17 UInt32
+    WcosBspProtectLevel = New-StructureField 18 UInt32
+    WcosWspProtectLevel = New-StructureField 19 UInt32
+    WcosDppProtectLevel = New-StructureField 20 UInt32
+}

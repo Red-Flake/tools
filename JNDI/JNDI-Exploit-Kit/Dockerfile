@@ -1,0 +1,22 @@
+FROM maven:3.5-jdk-8 as builder
+
+WORKDIR /app
+
+# download artifacts
+COPY pom.xml .
+RUN mvn dependency:resolve
+RUN mvn verify
+RUN mvn compiler:help
+
+# build
+COPY src ./src
+RUN mvn clean package -DskipTests
+RUN mv target/JNDI-Exploit-Kit-*-all.jar target/JNDI-Exploit-Kit.jar
+
+FROM openjdk:8-jdk-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/target/JNDI-Exploit-Kit.jar .
+
+ENTRYPOINT ["java", "-jar", "JNDI-Exploit-Kit.jar"]

@@ -1,3 +1,5 @@
+## This project is no longer supported
+
 ### PowerSploit is a collection of Microsoft PowerShell modules that can be used to aid penetration testers during all phases of an assessment. PowerSploit is comprised of the following modules and scripts:
 
 ## CodeExecution
@@ -36,7 +38,7 @@ Compresses, Base-64 encodes, and outputs generated code to load a managed dll in
 
 Encrypts text files/scripts.
 
-#### `Remove-Comments`
+#### `Remove-Comment`
 
 Strips comments and extra whitespace from a script. 
 
@@ -100,6 +102,10 @@ Logs keys pressed, time and the active window.
 
 Retrieves the plaintext password and other information for accounts pushed through Group Policy Preferences.
 
+#### `Get-GPPAutologon`
+
+Retrieves autologon username and password from registry.xml if pushed through Group Policy Preferences.
+
 #### `Get-TimedScreenshot`
 
 A function that takes screenshots at a regular interval and saves them to a folder.
@@ -127,6 +133,10 @@ Displays Windows vault credential objects including cleartext web credentials.
 #### `Out-Minidump`
 
 Generates a full-memory minidump of a process.
+
+#### `Get-MicrophoneAudio`
+
+Records audio from system microphone and saves to disk
 
 ## Mayhem
 

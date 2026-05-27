@@ -46,6 +46,10 @@ public class Mapper {
         references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"ExecTemplateJDK5");
         references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassByEL");
         references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassByGroovy");
+        references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassDbcp1Tomcat");
+        references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassDbcp2Tomcat");
+        references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassDbcp1Commons");
+        references.put(RandomStringUtils.randomAlphanumeric(6).toLowerCase(),"BypassDbcp2Commons");
 
         instructions.put("ExecTemplateJDK8","Build in "+ withColor("JDK 1.8",ANSI_RED) +" whose trustURLCodebase is true");
         instructions.put("ExecTemplateJDK7","Build in "+ withColor("JDK 1.7",ANSI_RED) +" whose trustURLCodebase is true");
@@ -53,6 +57,10 @@ public class Mapper {
         instructions.put("ExecTemplateJDK5","Build in "+ withColor("JDK 1.5",ANSI_RED) +" whose trustURLCodebase is true");
         instructions.put("BypassByEL","Build in "+ withColor("JDK - (BYPASS WITH EL by @welk1n)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+ or SpringBoot 1.2.x+ in classpath");
         instructions.put("BypassByGroovy","Build in "+ withColor("JDK - (BYPASS WITH GROOVY by @orangetw)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+ and Groovy in classpath");
+        instructions.put("BypassDbcp1Tomcat","Build in "+ withColor("JDK - (BYPASS WITH Tomcat DBCP1 by @b1ue)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+");
+        instructions.put("BypassDbcp2Tomcat","Build in "+ withColor("JDK - (BYPASS WITH Tomcat DBCP2 @b1ue)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+");
+        instructions.put("BypassDbcp1Commons","Build in "+ withColor("JDK - (BYPASS WITH Commons DBCP1 by @b1ue)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+");
+        instructions.put("BypassDbcp2Commons","Build in "+ withColor("JDK - (BYPASS WITH Commons DBCP2 by @b1ue)",ANSI_RED) +" whose trustURLCodebase is false and have Tomcat 8+");
 
         final List<Class<? extends ObjectPayload>> payloadClasses =
     			new ArrayList<Class<? extends ObjectPayload>>(ObjectPayload.Utils.getPayloadClasses());

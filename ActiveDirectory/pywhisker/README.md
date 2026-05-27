@@ -18,8 +18,8 @@ A `KRB-ERROR (16) : KDC_ERR_PADATA_TYPE_NOSUPP` will be raised if pre-req 3 is n
 
 More information about this "Shadow Credentials" primitive:
  - [Shadow Credentials: Abusing Key Trust Account Mapping for Takeover](https://posts.specterops.io/shadow-credentials-abusing-key-trust-account-mapping-for-takeover-8ee1a53566ab)
- - [The Hacker Recipes - ACEs abuse](https://www.thehacker.recipes/active-directory-domain-services/movement/access-control-entries)
- - [The Hacker Recipes - Shadow Credentials](https://www.thehacker.recipes/active-directory-domain-services/movement/access-control-entries/shadow-credentials)
+ - [The Hacker Recipes - ACEs and DACL abuse](https://www.thehacker.recipes/ad/movement/dacl/)
+ - [The Hacker Recipes - Shadow Credentials](https://www.thehacker.recipes/ad/movement/kerberos/shadow-credentials)
 
 # Usage
 
@@ -35,18 +35,20 @@ pyWhisker can be used to operate various actions on the msDs-KeyCredentialLink a
 
 pyWhisker supports the following authentications:
  - (NTLM) Cleartext password
- - (NTLM) [Pass-the-hash](https://www.thehacker.recipes/active-directory-domain-services/movement/lm-and-ntlm/pass-the-hash)
+ - (NTLM) [Pass-the-hash](https://www.thehacker.recipes/ad/movement/ntlm/pth)
  - (Kerberos) Cleartext password
- - (Kerberos) [Pass-the-key](https://www.thehacker.recipes/active-directory-domain-services/movement/kerberos/pass-the-key) / [Overpass-the-hash](https://www.thehacker.recipes/active-directory-domain-services/movement/kerberos/overpass-the-hash)
- - (Kerberos) [Pass-the-cache](https://www.thehacker.recipes/active-directory-domain-services/movement/kerberos/pass-the-cache) (type of [Pass-the-ticket](https://www.thehacker.recipes/active-directory-domain-services/movement/kerberos/pass-the-ticket))
+ - (Kerberos) [Pass-the-key](https://www.thehacker.recipes/ad/movement/kerberos/ptk) / [Overpass-the-hash](https://www.thehacker.recipes/ad/movement/kerberos/opth)
+ - (Kerberos) [Pass-the-cache](https://www.thehacker.recipes/ad/movement/kerberos/ptc) (type of [Pass-the-ticket](https://www.thehacker.recipes/ad/movement/kerberos/ptt))
+ - (LDAP over Schannel) [Pass-the-cert](https://www.thehacker.recipes/ad/movement/kerberos/pass-the-certificate)
 
 Among other things, pyWhisker supports multi-level verbosity, just append `-v`, `-vv`, ... to the command :)
 
 pyWhisker can also do cross-domain, see the `-td/--target-domain` argument.
 
 ```
-usage: pywhisker.py [-h] (-t TARGET_SAMNAME | -tl TARGET_SAMNAME_LIST) [-a [{list,add,spray,remove,clear,info,export,import}]] [--use-ldaps] [-v] [-q] [--dc-ip ip address] [-d DOMAIN]
-                    [-u USER] [-td TARGET_DOMAIN] [--no-pass | -p PASSWORD | -H [LMHASH:]NTHASH | --aes-key hex key] [-k] [-P PFX_PASSWORD] [-f FILENAME] [-e {PEM,PFX}] [-D DEVICE_ID]
+usage: pywhisker [-h] (-t TARGET_SAMNAME | -tl TARGET_SAMNAME_LIST) [-a [{list,add,spray,remove,clear,info,export,import}]] [--use-ldaps] [--use-schannel] [-v] [-q]
+                 [--dc-ip ip address] [-d DOMAIN] [-u USER] [-crt CERTFILE] [-key KEYFILE] [-td TARGET_DOMAIN] [--no-pass | -p PASSWORD | -H [LMHASH:]NTHASH | --aes-key hex key]
+                 [-k] [-P PFX_PASSWORD] [-f FILENAME] [-e {PEM,PFX}] [-D DEVICE_ID]
 
 Python (re)setter for property msDS-KeyCredentialLink for Shadow Credentials attacks.
 
@@ -59,6 +61,7 @@ optional arguments:
   -a [{list,add,spray,remove,clear,info,export,import}], --action [{list,add,spray,remove,clear,info,export,import}]
                         Action to operate on msDS-KeyCredentialLink
   --use-ldaps           Use LDAPS instead of LDAP
+  --use-schannel        Use LDAP Schannel (TLS) for certificate-based authentication
   -v, --verbose         verbosity level (-v for verbose, -vv for debug)
   -q, --quiet           show no information at all
 
@@ -67,6 +70,10 @@ authentication & connection:
   -d DOMAIN, --domain DOMAIN
                         (FQDN) domain to authenticate to
   -u USER, --user USER  user to authenticate with
+  -crt, --certfile CERTFILE
+                        Path to the user certificate (PEM format) for Schannel authentication
+  -key, --keyfile KEYFILE
+                        Path to the user private key (PEM format) for Schannel authentication
   -td TARGET_DOMAIN, --target-domain TARGET_DOMAIN
                         Target domain (if different than the domain of the authenticating user)
 

