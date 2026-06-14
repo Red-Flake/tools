@@ -16,7 +16,9 @@
 #
 # Local forks / customisations:
 #   - Bruteforce/su-bruteforce -> Mag1cByt3s/su-bruteforce (your fork)
-# Anything else points at the upstream. If you have local edits you want
+#   - Compiled Windows binaries for Rubeus, Certify, Whisker, SharpUp,
+#     Seatbelt, and mimikatz -> Red-Flake GitHub Releases built by CI
+# Most other entries point at upstream. If you have local edits you want
 # preserved, `git stash` (or commit) them first.
 
 set -uo pipefail
@@ -110,6 +112,41 @@ release_asset() {
   local url="https://github.com/${repo}/releases/latest/download/${asset}"
   debug "GET $url"
   if fetch_to "$url" "$dest"; then ok "  -> $dest"; else warn "release asset failed: ${repo} / ${asset}"; return 1; fi
+}
+
+latest_release_tag() {
+  local repo="$1" json tag
+  json="$(_curl "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null || true)"
+  tag="$(echo "$json" | grep -oE '"tag_name":[[:space:]]*"[^"]+"' | sed -E 's/.*"([^"]+)"$/\1/' | head -1)"
+  [[ -n "$tag" ]] && printf '%s\n' "$tag"
+}
+
+COMPILED_MANIFEST="$TMP_BASE/Compiled-Releases.md"
+
+compiled_manifest_init() {
+  [[ -f "$COMPILED_MANIFEST" ]] && return 0
+  cat > "$COMPILED_MANIFEST" <<EOF
+# Compiled Release Assets
+
+Last refreshed: $(date +%F)
+
+These binaries were built from the \`Red-Flake\` forks through GitHub Actions and downloaded from their GitHub Releases.
+
+| Tool | Release | Installed path | SHA256 |
+| --- | --- | --- | --- |
+EOF
+}
+
+compiled_release_asset() {
+  local tool="$1" repo="$2" asset="$3" dest="$4" tag sha rel installed
+  release_asset "$repo" "$asset" "$dest" || return 1
+  tag="$(latest_release_tag "$repo")"
+  [[ -z "$tag" ]] && tag="latest"
+  sha="$(sha256sum "$dest" | awk '{print $1}')"
+  rel="https://github.com/${repo}/releases/tag/${tag}"
+  installed="${dest#"$ROOT/"}"
+  compiled_manifest_init
+  printf '| %s | %s | `%s` | `%s` |\n' "$tool" "$rel" "$installed" "$sha" >> "$COMPILED_MANIFEST"
 }
 
 # release_asset_match OWNER/REPO ASSET_REGEX DEST
@@ -211,8 +248,9 @@ begin "ActiveDirectory/ADCS/passthecert.py" && {
            "$ROOT/ActiveDirectory/ADCS/passthecert.py"
 }
 
-begin "ActiveDirectory/ADCS/Certify.zip" && {
-  log "  (skipped — GhostPack/Certify v2 publishes no release assets; the .zip you have is a self-bundle)"
+begin "ActiveDirectory/ADCS/Certify.exe" && {
+  compiled_release_asset "Certify" "Red-Flake/Certify" "Certify.exe" \
+                         "$ROOT/ActiveDirectory/ADCS/Certify.exe"
 }
 
 begin "ActiveDirectory/Bloodhound/SharpHound.{exe,ps1}" && {
@@ -227,8 +265,10 @@ begin "ActiveDirectory/Bloodhound/SharpHound.{exe,ps1}" && {
   fi
 }
 
-begin "ActiveDirectory/Whisker.exe" && {
-  log "  (skipped — eladshamir/Whisker is source-only; rebuild from Whisker.sln if needed)"
+begin "ActiveDirectory/ADCS/Whisker.exe" && {
+  compiled_release_asset "Whisker" "Red-Flake/Whisker" "Whisker.exe" \
+                         "$ROOT/ActiveDirectory/ADCS/Whisker.exe"
+  rm -f "$ROOT/ActiveDirectory/Whisker.exe"
 }
 
 begin "ActiveDirectory/Exploits/noPac" && {
@@ -266,13 +306,6 @@ begin "ActiveDirectory/Exploits/RemotePotato0.exe" && {
   fi
 }
 
-begin "ActiveDirectory/Ghostpack-CompiledBinaries" && {
-  # r3motecontrol/Ghostpack-CompiledBinaries publishes pre-built binaries for
-  # each .NET runtime in subfolders matching the local layout.
-  git_export "r3motecontrol/Ghostpack-CompiledBinaries" "master" \
-             "$ROOT/ActiveDirectory/Ghostpack-CompiledBinaries"
-}
-
 begin "ActiveDirectory/Inveigh/Inveigh.exe" && {
   zip="$TMP_BASE/inveigh.zip"
   if release_asset_match "Kevin-Robertson/Inveigh" 'win-x64.*\.zip$' "$zip"; then
@@ -298,10 +331,8 @@ begin "ActiveDirectory/Kerberos/KrbRelayUp.exe" && {
 }
 
 begin "ActiveDirectory/Kerberos/Rubeus.exe" && {
-  # Use the v4.7.2 build from Ghostpack-CompiledBinaries as a canonical "latest".
-  raw_file "r3motecontrol/Ghostpack-CompiledBinaries" "master" \
-           "dotnet%20v4.7.2%20compiled%20binaries/Rubeus.exe" \
-           "$ROOT/ActiveDirectory/Kerberos/Rubeus.exe"
+  compiled_release_asset "Rubeus" "Red-Flake/Rubeus" "Rubeus.exe" \
+                         "$ROOT/ActiveDirectory/Kerberos/Rubeus.exe"
 }
 
 begin "ActiveDirectory/Kerberos/KeyTabExtract" && {
@@ -384,14 +415,10 @@ begin "CredentialDumping/Windows/LaZagne.exe" && {
 }
 
 begin "CredentialDumping/Windows/mimikatz" && {
-  zip="$TMP_BASE/mimikatz_trunk.zip"
-  if release_asset_match "gentilkiwi/mimikatz" 'mimikatz_trunk\.zip$' "$zip"; then
-    td="$TMP_BASE/mimikatz"; mkdir -p "$td"
-    unzip -oq "$zip" -d "$td"
-    rsync -a --delete "$td/" "$ROOT/CredentialDumping/Windows/mimikatz/" && ok "  -> mimikatz/"
-  else
-    log "  (latest mimikatz release uses .7z — install p7zip and re-run, or update manually)"
-  fi
+  compiled_release_asset "mimikatz Win32" "Red-Flake/mimikatz" "mimikatz-win32.exe" \
+                         "$ROOT/CredentialDumping/Windows/mimikatz/Win32/mimikatz.exe"
+  compiled_release_asset "mimikatz x64" "Red-Flake/mimikatz" "mimikatz-x64.exe" \
+                         "$ROOT/CredentialDumping/Windows/mimikatz/x64/mimikatz.exe"
 }
 
 begin "CredentialDumping/Windows/mremoteng_decrypt.py" && {
@@ -650,13 +677,11 @@ begin "Privesc/Windows/PrivescCheck" && {
   git_export_replace "itm4n/PrivescCheck" "master" "$ROOT/Privesc/Windows/PrivescCheck"
 }
 
-begin "Privesc/Windows/Seatbelt.exe + SharpUp.exe (Ghostpack)" && {
-  raw_file "r3motecontrol/Ghostpack-CompiledBinaries" "master" \
-           "dotnet%20v4.7.2%20compiled%20binaries/Seatbelt.exe" \
-           "$ROOT/Privesc/Windows/Seatbelt.exe"
-  raw_file "r3motecontrol/Ghostpack-CompiledBinaries" "master" \
-           "dotnet%20v4.7.2%20compiled%20binaries/SharpUp.exe" \
-           "$ROOT/Privesc/Windows/SharpUp.exe"
+begin "Privesc/Windows/Seatbelt.exe + SharpUp.exe (Red-Flake)" && {
+  compiled_release_asset "Seatbelt" "Red-Flake/Seatbelt" "Seatbelt.exe" \
+                         "$ROOT/Privesc/Windows/Seatbelt.exe"
+  compiled_release_asset "SharpUp" "Red-Flake/SharpUp" "SharpUp.exe" \
+                         "$ROOT/Privesc/Windows/SharpUp.exe"
 }
 
 begin "Privesc/Windows/SeBackupPrivilege/*.dll" && {
@@ -904,6 +929,13 @@ begin "Wordlists/username-anarchy" && {
 # ---------- summary ----------
 
 if [[ "$MODE" != "list" ]]; then
+  if [[ -f "$COMPILED_MANIFEST" && -z "$ONLY" && -z "$SKIP" ]]; then
+    mv "$COMPILED_MANIFEST" "$ROOT/Compiled-Releases.md"
+    ok "  -> Compiled-Releases.md"
+  elif [[ -f "$COMPILED_MANIFEST" ]]; then
+    log "  (compiled release manifest not rewritten during filtered update)"
+  fi
+
   echo
   log "Done. ${COUNT_OK} ok, ${COUNT_WARN} warning(s)."
   if (( ${#FAILED[@]} > 0 )); then
