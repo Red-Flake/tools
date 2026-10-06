@@ -17,7 +17,8 @@
 # Local forks / customisations:
 #   - Bruteforce/su-bruteforce -> Mag1cByt3s/su-bruteforce (your fork)
 #   - Compiled Windows binaries for Rubeus, Certify, Whisker, SharpUp,
-#     Seatbelt, and mimikatz -> Red-Flake GitHub Releases built by CI
+#     Seatbelt, mimikatz, SharpDPAPI, and SharpChrome -> Red-Flake GitHub
+#     Releases built by CI
 # Most other entries point at upstream. If you have local edits you want
 # preserved, `git stash` (or commit) them first.
 
@@ -419,6 +420,13 @@ begin "CredentialDumping/Windows/mimikatz" && {
                          "$ROOT/CredentialDumping/Windows/mimikatz/Win32/mimikatz.exe"
   compiled_release_asset "mimikatz x64" "Red-Flake/mimikatz" "mimikatz-x64.exe" \
                          "$ROOT/CredentialDumping/Windows/mimikatz/x64/mimikatz.exe"
+}
+
+begin "CredentialDumping/Windows/SharpDPAPI.exe + SharpChrome.exe (Red-Flake)" && {
+  compiled_release_asset "SharpDPAPI" "Red-Flake/SharpDPAPI" "SharpDPAPI.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpDPAPI.exe"
+  compiled_release_asset "SharpChrome" "Red-Flake/SharpDPAPI" "SharpChrome.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpChrome.exe"
 }
 
 begin "CredentialDumping/Windows/mremoteng_decrypt.py" && {
