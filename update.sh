@@ -422,11 +422,15 @@ begin "CredentialDumping/Windows/mimikatz" && {
                          "$ROOT/CredentialDumping/Windows/mimikatz/x64/mimikatz.exe"
 }
 
-begin "CredentialDumping/Windows/SharpDPAPI.exe + SharpChrome.exe (Red-Flake)" && {
-  compiled_release_asset "SharpDPAPI" "Red-Flake/SharpDPAPI" "SharpDPAPI.exe" \
-                         "$ROOT/CredentialDumping/Windows/SharpDPAPI.exe"
-  compiled_release_asset "SharpChrome" "Red-Flake/SharpDPAPI" "SharpChrome.exe" \
-                         "$ROOT/CredentialDumping/Windows/SharpChrome.exe"
+begin "CredentialDumping/Windows/SharpDPAPI + SharpChrome (Red-Flake, net35 + net48)" && {
+  compiled_release_asset "SharpDPAPI (.NET 3.5)" "Red-Flake/SharpDPAPI" "SharpDPAPI_net35.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpDPAPI_net35.exe"
+  compiled_release_asset "SharpDPAPI (.NET 4.8)" "Red-Flake/SharpDPAPI" "SharpDPAPI_net48.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpDPAPI_net48.exe"
+  compiled_release_asset "SharpChrome (.NET 3.5)" "Red-Flake/SharpDPAPI" "SharpChrome_net35.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpChrome_net35.exe"
+  compiled_release_asset "SharpChrome (.NET 4.8)" "Red-Flake/SharpDPAPI" "SharpChrome_net48.exe" \
+                         "$ROOT/CredentialDumping/Windows/SharpChrome_net48.exe"
 }
 
 begin "CredentialDumping/Windows/mremoteng_decrypt.py" && {
